@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <title>Classical TCP Improvements</title>
+    <meta property="og:title" content="Classical TCP Improvements">
+    <meta name="author" content="Asmin Bhattarai">
+    <meta property="article:author" content="Asmin Bhattarai">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <style>
+        @media screen {
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button {
+                -webkit-tap-highlight-color: transparent;
+                -webkit-appearance: none;
+                appearance: none;
+                background-color: transparent;
+                border: 0;
+                color: inherit;
+                cursor: pointer;
+                font-size: inherit;
+                opacity: .8;
+                outline: none;
+                padding: 0;
+                transition: opacity .2s linear
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button:disabled,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button:disabled,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button:disabled,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button:disabled {
+                cursor: not-allowed;
+                opacity: .15 !important
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button:hover,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button:hover,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button:hover,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button:hover {
+                opacity: 1
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button:hover:active,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button:hover:active,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button:hover:active,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button:hover:active {
+                opacity: .6
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button:hover:not(:disabled),
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button:hover:not(:disabled),
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button:hover:not(:disabled),
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button:hover:not(:disabled) {
+                transition: none
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=prev],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=prev],
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button.bespoke-marp-presenter-info-page-prev {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1IiBkPSJNNjggOTAgMjggNTBsNDAtNDAiLz48L3N2Zz4=") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=next],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=next],
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button.bespoke-marp-presenter-info-page-next {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1IiBkPSJtMzIgOTAgNDAtNDAtNDAtNDAiLz48L3N2Zz4=") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=fullscreen],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=fullscreen] {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48c3R5bGU+LmF7ZmlsbDpub25lO3N0cm9rZTojZmZmO3N0cm9rZS1saW5lY2FwOnJvdW5kO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2Utd2lkdGg6NXB4fTwvc3R5bGU+PC9kZWZzPjxyZWN0IHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgeD0iMTAiIHk9IjIwIiBjbGFzcz0iYSIgcng9IjUuNjciLz48cGF0aCBkPSJNNDAgNzBIMjBWNTBtMjAgMEwyMCA3MG00MC00MGgyMHYyMG0tMjAgMCAyMC0yMCIgY2xhc3M9ImEiLz48L3N2Zz4=") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button.exit[data-bespoke-marp-osc=fullscreen],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button.exit[data-bespoke-marp-osc=fullscreen] {
+                background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48ZGVmcz48c3R5bGU+LmF7ZmlsbDpub25lO3N0cm9rZTojZmZmO3N0cm9rZS1saW5lY2FwOnJvdW5kO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2Utd2lkdGg6NXB4fTwvc3R5bGU+PC9kZWZzPjxyZWN0IHdpZHRoPSI4MCIgaGVpZ2h0PSI2MCIgeD0iMTAiIHk9IjIwIiBjbGFzcz0iYSIgcng9IjUuNjciLz48cGF0aCBkPSJNMjAgNTBoMjB2MjBtLTIwIDAgMjAtMjBtNDAgMEg2MFYzMG0yMCAwTDYwIDUwIiBjbGFzcz0iYSIvPjwvc3ZnPg==")
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=presenter],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=presenter] {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1IiBkPSJNODcuOCA0Ny41Qzg5IDUwIDg3LjcgNTIgODUgNTJIMzVhOC43IDguNyAwIDAgMS03LjItNC41bC0xNS42LTMxQzExIDE0IDEyLjIgMTIgMTUgMTJoNTBhOC44IDguOCAwIDAgMSA3LjIgNC41ek02MCA1MnYzNm0tMTAgMGgyME00NSA0MmgyMCIvPjwvc3ZnPg==") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button.bespoke-marp-presenter-note-bigger {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBzdHJva2U9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1IiBkPSJNMTIgNTBoODBNNTIgOTBWMTAiLz48L3N2Zz4=") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button.bespoke-marp-presenter-note-smaller {
+                background: transparent url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSI1IiBkPSJNMTIgNTBoODAiLz48L3N2Zz4=") no-repeat 50%;
+                background-size: contain;
+                overflow: hidden;
+                text-indent: 100%;
+                white-space: nowrap
+            }
+        }
+
+        @keyframes __bespoke_marp_transition_reduced_outgoing__ {
+            0% {
+                opacity: 1
+            }
+
+            to {
+                opacity: 0
+            }
+        }
+
+        @keyframes __bespoke_marp_transition_reduced_incoming__ {
+            0% {
+                mix-blend-mode: plus-lighter;
+                opacity: 0
+            }
+
+            to {
+                mix-blend-mode: plus-lighter;
+                opacity: 1
+            }
+        }
+
+        .bespoke-marp-note,
+        .bespoke-marp-osc,
+        .bespoke-progress-parent {
+            display: none;
+            transition: none
+        }
+
+        @media screen {
+            ::view-transition-group(*) {
+                animation-duration: var(--marp-bespoke-transition-animation-duration, .5s);
+                animation-timing-function: ease
+            }
+
+            ::view-transition-new(*),
+            ::view-transition-old(*) {
+                animation-delay: 0s;
+                animation-direction: var(--marp-bespoke-transition-animation-direction, normal);
+                animation-duration: var(--marp-bespoke-transition-animation-duration, .5s);
+                animation-fill-mode: both;
+                animation-name: var(--marp-bespoke-transition-animation-name, var(--marp-bespoke-transition-animation-name-fallback, __bespoke_marp_transition_no_animation__));
+                mix-blend-mode: normal
+            }
+
+            ::view-transition-old(*) {
+                --marp-bespoke-transition-animation-name-fallback: __bespoke_marp_transition_reduced_outgoing__;
+                animation-timing-function: ease
+            }
+
+            ::view-transition-new(*) {
+                --marp-bespoke-transition-animation-name-fallback: __bespoke_marp_transition_reduced_incoming__;
+                animation-timing-function: ease
+            }
+
+            ::view-transition-new(root),
+            ::view-transition-old(root) {
+                animation-timing-function: linear
+            }
+
+            ::view-transition-new(__bespoke_marp_transition_osc__),
+            ::view-transition-old(__bespoke_marp_transition_osc__) {
+                animation-duration: 0s !important;
+                animation-name: __bespoke_marp_transition_osc__ !important
+            }
+
+            ::view-transition-new(__bespoke_marp_transition_osc__) {
+                opacity: 0 !important
+            }
+
+            .bespoke-marp-transition-warming-up::view-transition-group(*),
+            .bespoke-marp-transition-warming-up::view-transition-new(*),
+            .bespoke-marp-transition-warming-up::view-transition-old(*) {
+                animation-play-state: paused !important
+            }
+
+            body,
+            html {
+                height: 100%;
+                margin: 0
+            }
+
+            body {
+                background: #000;
+                overflow: hidden
+            }
+
+            svg.bespoke-marp-slide {
+                content-visibility: hidden;
+                opacity: 0;
+                pointer-events: none;
+                z-index: -1
+            }
+
+            svg.bespoke-marp-slide:not(.bespoke-marp-active) * {
+                view-transition-name: none !important
+            }
+
+            svg.bespoke-marp-slide.bespoke-marp-active {
+                content-visibility: visible;
+                opacity: 1;
+                pointer-events: auto;
+                z-index: 0
+            }
+
+            svg.bespoke-marp-slide.bespoke-marp-active.bespoke-marp-active-ready * {
+                animation-name: __bespoke_marp__ !important
+            }
+
+            @supports not (content-visibility:hidden) {
+                svg.bespoke-marp-slide[data-bespoke-marp-load=hideable] {
+                    display: none
+                }
+
+                svg.bespoke-marp-slide[data-bespoke-marp-load=hideable].bespoke-marp-active {
+                    display: block
+                }
+            }
+        }
+
+        @media screen and (prefers-reduced-motion:reduce) {
+            svg.bespoke-marp-slide * {
+                view-transition-name: none !important
+            }
+        }
+
+        @media screen {
+            [data-bespoke-marp-fragment=inactive] {
+                visibility: hidden
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent,
+            body[data-bespoke-view=next] .bespoke-marp-parent {
+                inset: 0;
+                position: absolute
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc {
+                view-transition-name: __bespoke_marp_transition_osc__;
+                background: rgba(0, 0, 0, .65);
+                border-radius: 7px;
+                bottom: 50px;
+                color: #fff;
+                contain: paint;
+                display: block;
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 16px;
+                left: 50%;
+                line-height: 0;
+                opacity: 1;
+                padding: 12px;
+                position: absolute;
+                touch-action: manipulation;
+                transform: translateX(-50%);
+                transition: opacity .2s linear;
+                -webkit-user-select: none;
+                user-select: none;
+                white-space: nowrap;
+                will-change: transform;
+                z-index: 1
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>*,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>* {
+                margin-left: 6px
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>:first-child,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>:first-child {
+                margin-left: 0
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>span,
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>span {
+                opacity: .8
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>span[data-bespoke-marp-osc=page],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>span[data-bespoke-marp-osc=page] {
+                display: inline-block;
+                min-width: 140px;
+                text-align: center
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=fullscreen],
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=next],
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=presenter],
+            body[data-bespoke-view=""] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=prev],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=fullscreen],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=next],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=presenter],
+            body[data-bespoke-view=next] .bespoke-marp-parent>.bespoke-marp-osc>button[data-bespoke-marp-osc=prev] {
+                height: 32px;
+                line-height: 32px;
+                width: 32px
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent.bespoke-marp-inactive,
+            body[data-bespoke-view=next] .bespoke-marp-parent.bespoke-marp-inactive {
+                cursor: none
+            }
+
+            body[data-bespoke-view=""] .bespoke-marp-parent.bespoke-marp-inactive>.bespoke-marp-osc,
+            body[data-bespoke-view=next] .bespoke-marp-parent.bespoke-marp-inactive>.bespoke-marp-osc {
+                opacity: 0;
+                pointer-events: none
+            }
+
+            body[data-bespoke-view=""] svg.bespoke-marp-slide,
+            body[data-bespoke-view=next] svg.bespoke-marp-slide {
+                height: 100%;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100%
+            }
+
+            body[data-bespoke-view=""] .bespoke-progress-parent {
+                background: #222;
+                display: flex;
+                height: 5px;
+                width: 100%
+            }
+
+            body[data-bespoke-view=""] .bespoke-progress-parent+.bespoke-marp-parent {
+                top: 5px
+            }
+
+            body[data-bespoke-view=""] .bespoke-progress-parent .bespoke-progress-bar {
+                background: #0288d1;
+                flex: 0 0 0;
+                transition: flex-basis .2s cubic-bezier(0, 1, 1, 1)
+            }
+
+            body[data-bespoke-view=next] {
+                background: transparent
+            }
+
+            body[data-bespoke-view=presenter] {
+                background: #161616
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container {
+                display: grid;
+                font-family: Helvetica, Arial, sans-serif;
+                grid-template: "current dragbar next" minmax(140px, 1fr) "current dragbar note" 2fr "info    dragbar note" 3em;
+                grid-template-columns: minmax(3px, var(--bespoke-marp-presenter-split-ratio, 66%)) 0 minmax(3px, 1fr);
+                height: 100%;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100%
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-parent {
+                grid-area: current;
+                overflow: hidden;
+                position: relative
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-parent svg.bespoke-marp-slide {
+                height: calc(100% - 40px);
+                left: 20px;
+                pointer-events: none;
+                position: absolute;
+                top: 20px;
+                -webkit-user-select: none;
+                user-select: none;
+                width: calc(100% - 40px)
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-parent svg.bespoke-marp-slide.bespoke-marp-active {
+                filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .5))
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-dragbar-container {
+                background: #0288d1;
+                cursor: col-resize;
+                grid-area: dragbar;
+                margin-left: -3px;
+                opacity: 0;
+                position: relative;
+                transition: opacity .4s linear .1s;
+                width: 6px;
+                z-index: 10
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-dragbar-container:hover {
+                opacity: 1
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-dragbar-container.active {
+                opacity: 1;
+                transition-delay: 0s
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-next-container {
+                background: #222;
+                cursor: pointer;
+                display: none;
+                grid-area: next;
+                overflow: hidden;
+                position: relative
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-next-container.active {
+                display: block
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-next-container iframe.bespoke-marp-presenter-next {
+                background: transparent;
+                border: 0;
+                display: block;
+                filter: drop-shadow(0 3px 10px rgba(0, 0, 0, .5));
+                height: calc(100% - 40px);
+                left: 20px;
+                pointer-events: none;
+                position: absolute;
+                top: 20px;
+                -webkit-user-select: none;
+                user-select: none;
+                width: calc(100% - 40px)
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container {
+                background: #222;
+                color: #eee;
+                grid-area: note;
+                position: relative;
+                z-index: 1
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container button {
+                height: 1.5em;
+                line-height: 1.5em;
+                width: 1.5em
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-presenter-note-wrapper {
+                display: block;
+                inset: 0;
+                position: absolute
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-presenter-note-buttons {
+                background: rgba(0, 0, 0, .65);
+                border-radius: 4px;
+                bottom: 0;
+                display: flex;
+                gap: 4px;
+                margin: 12px;
+                opacity: 0;
+                padding: 6px;
+                pointer-events: none;
+                position: absolute;
+                right: 0;
+                transition: opacity .2s linear
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-presenter-note-buttons:focus-within,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-presenter-note-wrapper:focus-within+.bespoke-marp-presenter-note-buttons,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container:hover .bespoke-marp-presenter-note-buttons {
+                opacity: 1;
+                pointer-events: auto
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note {
+                word-wrap: break-word;
+                box-sizing: border-box;
+                font-size: calc(1.1em*var(--bespoke-marp-note-font-scale, 1));
+                height: calc(100% - 40px);
+                margin: 20px;
+                overflow: auto;
+                padding-right: 3px;
+                scrollbar-color: hsla(0, 0%, 93%, .5) transparent;
+                scrollbar-width: thin;
+                white-space: pre-wrap;
+                width: calc(100% - 40px)
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note::-webkit-scrollbar {
+                width: 6px
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note::-webkit-scrollbar-track {
+                background: transparent
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note::-webkit-scrollbar-thumb {
+                background: hsla(0, 0%, 93%, .5);
+                border-radius: 6px
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note:empty {
+                pointer-events: none
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note.active {
+                display: block
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note p:first-child {
+                margin-top: 0
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-note-container .bespoke-marp-note p:last-child {
+                margin-bottom: 0
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container {
+                align-items: center;
+                box-sizing: border-box;
+                color: #eee;
+                display: flex;
+                flex-wrap: nowrap;
+                grid-area: info;
+                justify-content: center;
+                overflow: hidden;
+                padding: 0 10px
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-page,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-time,
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-timer {
+                box-sizing: border-box;
+                display: block;
+                padding: 0 10px;
+                white-space: nowrap;
+                width: 100%
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container button {
+                height: 1.5em;
+                line-height: 1.5em;
+                width: 1.5em
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-page {
+                order: 2;
+                text-align: center
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-page .bespoke-marp-presenter-info-page-text {
+                display: inline-block;
+                min-width: 120px;
+                text-align: center
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-time {
+                color: #999;
+                order: 1;
+                text-align: left
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-timer {
+                color: #999;
+                order: 3;
+                text-align: right
+            }
+
+            body[data-bespoke-view=presenter] .bespoke-marp-presenter-container .bespoke-marp-presenter-info-container .bespoke-marp-presenter-info-timer:hover {
+                cursor: pointer
+            }
+        }
+
+        @media print {
+
+            .bespoke-marp-presenter-info-container,
+            .bespoke-marp-presenter-next-container,
+            .bespoke-marp-presenter-note-container {
+                display: none
+            }
+        }
+    </style>
+    <style>
+        @import "https://fonts.bunny.net/css?family=Lato:400,900|Roboto+Mono:400,700&display=swap";
+
+        div#\:\$p>svg>foreignObject>section {
+            width: 1280px;
+            height: 720px;
+            box-sizing: border-box;
+            overflow: hidden;
+            position: relative;
+            scroll-snap-align: center center
+        }
+
+        div#\:\$p>svg>foreignObject>section:after {
+            bottom: 0;
+            content: attr(data-marpit-pagination);
+            padding: inherit;
+            pointer-events: none;
+            position: absolute;
+            right: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section:not([data-marpit-pagination]):after {
+            display: none
+        }
+
+        /* Normalization */
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1) {
+            font-size: 2em;
+            margin: 0.67em 0
+        }
+
+        div#\:\$p>svg>foreignObject>section video::-webkit-media-controls {
+            will-change: transform
+        }
+
+        @page {
+            size: 1280px 720px;
+            margin: 0
+        }
+
+        @media print {
+
+            body,
+            html {
+                background-color: #fff;
+                margin: 0;
+                page-break-inside: avoid;
+                break-inside: avoid-page
+            }
+
+            div#\:\$p>svg>foreignObject>section {
+                page-break-before: always;
+                break-before: page
+            }
+
+            div#\:\$p>svg>foreignObject>section,
+            div#\:\$p>svg>foreignObject>section * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                animation-delay: 0s !important;
+                animation-duration: 0s !important;
+                transition: none !important
+            }
+
+            div#\:\$p>svg[data-marpit-svg] {
+                display: block;
+                height: 100vh;
+                width: 100vw
+            }
+        }
+
+        div#\:\$p>svg>foreignObject>:where(section) {
+            container-type: size
+        }
+
+        div#\:\$p>svg>foreignObject>section img[data-marp-twemoji] {
+            background: transparent;
+            height: 1em;
+            margin: 0 .05em 0 .1em;
+            vertical-align: -.1em;
+            width: 1em
+        }
+
+        /*!
+ * Marp / Marpit Gaia theme.
+ *
+ * @theme gaia
+ * @author Yuki Hattori
+ *
+ * @auto-scaling true
+ * @size 16:9 1280px 720px
+ * @size 4:3 960px 720px
+ */
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre) code.hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 1em
+        }
+
+        div#\:\$p>svg>foreignObject>section code.hljs {
+            padding: 3px 5px
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs {
+            background: #000;
+            color: #f8f8f8
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-comment,
+        div#\:\$p>svg>foreignObject>section .hljs-quote {
+            color: #aeaeae;
+            font-style: italic
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-keyword,
+        div#\:\$p>svg>foreignObject>section .hljs-selector-tag,
+        div#\:\$p>svg>foreignObject>section .hljs-type {
+            color: #e28964
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-string {
+            color: #65b042
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-subst {
+            color: #daefa3
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-link,
+        div#\:\$p>svg>foreignObject>section .hljs-regexp {
+            color: #e9c062
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-name,
+        div#\:\$p>svg>foreignObject>section .hljs-section,
+        div#\:\$p>svg>foreignObject>section .hljs-tag,
+        div#\:\$p>svg>foreignObject>section .hljs-title {
+            color: #89bdff
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-class .hljs-title,
+        div#\:\$p>svg>foreignObject>section .hljs-doctag,
+        div#\:\$p>svg>foreignObject>section .hljs-title.class_ {
+            text-decoration: underline
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-bullet,
+        div#\:\$p>svg>foreignObject>section .hljs-number,
+        div#\:\$p>svg>foreignObject>section .hljs-symbol {
+            color: #3387cc
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-params,
+        div#\:\$p>svg>foreignObject>section .hljs-template-variable,
+        div#\:\$p>svg>foreignObject>section .hljs-variable {
+            color: #3e87e3
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-attribute {
+            color: #cda869
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-meta {
+            color: #8996a8
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-formula {
+            background-color: #0e2231;
+            color: #f8f8f8;
+            font-style: italic
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-addition {
+            background-color: #253b22;
+            color: #f8f8f8
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-deletion {
+            background-color: #420e09;
+            color: #f8f8f8
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-selector-class {
+            color: #9b703f
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-selector-id {
+            color: #8b98ab
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-emphasis {
+            font-style: italic
+        }
+
+        div#\:\$p>svg>foreignObject>section .hljs-strong {
+            font-weight: 700
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1),
+        div#\:\$p>svg>foreignObject>section :is(h2, marp-h2),
+        div#\:\$p>svg>foreignObject>section :is(h3, marp-h3),
+        div#\:\$p>svg>foreignObject>section :is(h4, marp-h4),
+        div#\:\$p>svg>foreignObject>section :is(h5, marp-h5),
+        div#\:\$p>svg>foreignObject>section :is(h6, marp-h6) {
+            margin: .5em 0 0
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1) strong,
+        div#\:\$p>svg>foreignObject>section :is(h2, marp-h2) strong,
+        div#\:\$p>svg>foreignObject>section :is(h3, marp-h3) strong,
+        div#\:\$p>svg>foreignObject>section :is(h4, marp-h4) strong,
+        div#\:\$p>svg>foreignObject>section :is(h5, marp-h5) strong,
+        div#\:\$p>svg>foreignObject>section :is(h6, marp-h6) strong {
+            font-weight: inherit
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1)::part(auto-scaling),
+        div#\:\$p>svg>foreignObject>section :is(h2, marp-h2)::part(auto-scaling),
+        div#\:\$p>svg>foreignObject>section :is(h3, marp-h3)::part(auto-scaling),
+        div#\:\$p>svg>foreignObject>section :is(h4, marp-h4)::part(auto-scaling),
+        div#\:\$p>svg>foreignObject>section :is(h5, marp-h5)::part(auto-scaling),
+        div#\:\$p>svg>foreignObject>section :is(h6, marp-h6)::part(auto-scaling) {
+            max-height: 580px
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1) {
+            font-size: 1.8em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h2, marp-h2) {
+            font-size: 1.5em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h3, marp-h3) {
+            font-size: 1.3em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h4, marp-h4) {
+            font-size: 1.1em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h5, marp-h5) {
+            font-size: 1em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h6, marp-h6) {
+            font-size: .9em
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote,
+        div#\:\$p>svg>foreignObject>section p {
+            margin: 1em 0 0
+        }
+
+        div#\:\$p>svg>foreignObject>section ol>li,
+        div#\:\$p>svg>foreignObject>section ul>li {
+            margin: .3em 0 0
+        }
+
+        div#\:\$p>svg>foreignObject>section ol>li>p,
+        div#\:\$p>svg>foreignObject>section ul>li>p {
+            margin: .6em 0 0
+        }
+
+        div#\:\$p>svg>foreignObject>section code {
+            display: inline-block;
+            font-family: Roboto Mono, monospace;
+            font-size: .8em;
+            letter-spacing: 0;
+            margin: -.1em .15em;
+            padding: .1em .2em;
+            vertical-align: baseline
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre) {
+            display: block;
+            margin: 1em 0 0;
+            overflow: visible
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre) code {
+            box-sizing: border-box;
+            font-size: .7em;
+            margin: 0;
+            min-width: 100%;
+            padding: .5em
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre)::part(auto-scaling) {
+            max-height: calc(580px - 1em)
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote {
+            margin: 1em 0 0;
+            padding: 0 1em;
+            position: relative
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote:after,
+        div#\:\$p>svg>foreignObject>section blockquote:before {
+            content: "“";
+            display: block;
+            font-family: Times New Roman, serif;
+            font-weight: 700;
+            position: absolute
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote:before {
+            left: 0;
+            top: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote:after {
+            bottom: 0;
+            right: 0;
+            transform: rotate(180deg)
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote>:first-child {
+            margin-top: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section mark {
+            background: transparent
+        }
+
+        div#\:\$p>svg>foreignObject>section table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 1em 0 0
+        }
+
+        div#\:\$p>svg>foreignObject>section table td,
+        div#\:\$p>svg>foreignObject>section table th {
+            border-style: solid;
+            border-width: 1px;
+            padding: .2em .4em
+        }
+
+        div#\:\$p>svg>foreignObject>section footer,
+        div#\:\$p>svg>foreignObject>section header,
+        div#\:\$p>svg>foreignObject>section:after {
+            box-sizing: border-box;
+            font-size: 66%;
+            height: 70px;
+            line-height: 50px;
+            overflow: hidden;
+            padding: 10px 25px;
+            position: absolute
+        }
+
+        div#\:\$p>svg>foreignObject>section:after {
+            --marpit-root-font-size: 66%
+        }
+
+        div#\:\$p>svg>foreignObject>section header {
+            top: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section footer,
+        div#\:\$p>svg>foreignObject>section header {
+            left: 0;
+            right: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section footer {
+            bottom: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section {
+            word-wrap: break-word;
+            --color-background: #fff8e1;
+            --color-background-stripe: rgba(69, 90, 100, .1);
+            --color-foreground: #455a64;
+            --color-dimmed: #6a7a7d;
+            --color-highlight: #0288d1;
+            background-color: var(--color-background);
+            background-image: linear-gradient(135deg, hsla(0, 0%, 53%, 0), hsla(0, 0%, 53%, .02) 50%, hsla(0, 0%, 100%, 0) 0, hsla(0, 0%, 100%, .05));
+            color: var(--color-foreground);
+            font-family: Lato, Avenir Next, Avenir, Trebuchet MS, Segoe UI, sans-serif;
+            font-size: 35px;
+            height: 720px;
+            letter-spacing: 1.25px;
+            line-height: 1.35;
+            padding: 70px;
+            width: 1280px
+        }
+
+        div#\:\$p>svg>foreignObject>section {
+            --marpit-root-font-size: 35px
+        }
+
+        div#\:\$p>svg>foreignObject>section:after {
+            bottom: 0;
+            font-size: 80%;
+            right: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section:after {
+            --marpit-root-font-size: 80%
+        }
+
+        div#\:\$p>svg>foreignObject>section a,
+        div#\:\$p>svg>foreignObject>section mark {
+            color: var(--color-highlight)
+        }
+
+        div#\:\$p>svg>foreignObject>section code {
+            background: var(--color-dimmed);
+            color: var(--color-background)
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(h1, marp-h1) strong,
+        div#\:\$p>svg>foreignObject>section :is(h2, marp-h2) strong,
+        div#\:\$p>svg>foreignObject>section :is(h3, marp-h3) strong,
+        div#\:\$p>svg>foreignObject>section :is(h4, marp-h4) strong,
+        div#\:\$p>svg>foreignObject>section :is(h5, marp-h5) strong,
+        div#\:\$p>svg>foreignObject>section :is(h6, marp-h6) strong {
+            color: var(--color-highlight)
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre) {
+            background: var(--color-foreground)
+        }
+
+        div#\:\$p>svg>foreignObject>section :is(pre, marp-pre)>code {
+            background: transparent
+        }
+
+        div#\:\$p>svg>foreignObject>section blockquote:after,
+        div#\:\$p>svg>foreignObject>section blockquote:before,
+        div#\:\$p>svg>foreignObject>section footer,
+        div#\:\$p>svg>foreignObject>section header,
+        div#\:\$p>svg>foreignObject>section section:after {
+            color: var(--color-dimmed)
+        }
+
+        div#\:\$p>svg>foreignObject>section table td,
+        div#\:\$p>svg>foreignObject>section table th {
+            border-color: var(--color-foreground)
+        }
+
+        div#\:\$p>svg>foreignObject>section table thead th {
+            background: var(--color-foreground);
+            color: var(--color-background)
+        }
+
+        div#\:\$p>svg>foreignObject>section table tbody>tr:nth-child(odd) td,
+        div#\:\$p>svg>foreignObject>section table tbody>tr:nth-child(odd) th {
+            background: var(--color-background-stripe, transparent)
+        }
+
+        div#\:\$p>svg>foreignObject>section>:first-child,
+        div#\:\$p>svg>foreignObject>section>header:first-child+* {
+            margin-top: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.invert) {
+            --color-background: #455a64;
+            --color-background-stripe: rgba(255, 248, 225, .1);
+            --color-foreground: #fff8e1;
+            --color-dimmed: #dad8c8;
+            --color-highlight: #81d4fa
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.gaia) {
+            --color-background: #0288d1;
+            --color-background-stripe: rgba(255, 248, 225, .1);
+            --color-foreground: #fff8e1;
+            --color-dimmed: #cce2de;
+            --color-highlight: #81d4fa
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) {
+            display: flex;
+            flex-flow: column nowrap;
+            justify-content: center
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h1, marp-h1),
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h2, marp-h2),
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h3, marp-h3),
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h4, marp-h4),
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h5, marp-h5),
+        div#\:\$p>svg>foreignObject>section:where(.lead) :is(h6, marp-h6) {
+            text-align: center
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) p {
+            text-align: center
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h1, marp-h1),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h2, marp-h2),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h3, marp-h3),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h4, marp-h4),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h5, marp-h5),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>:is(h6, marp-h6),
+        div#\:\$p>svg>foreignObject>section:where(.lead) blockquote>p {
+            text-align: left
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) ol>li>p,
+        div#\:\$p>svg>foreignObject>section:where(.lead) ul>li>p {
+            text-align: left
+        }
+
+        div#\:\$p>svg>foreignObject>section:where(.lead) table {
+            margin-left: auto;
+            margin-right: auto
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background] {
+            columns: initial !important;
+            display: block !important;
+            padding: 0 !important
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]:after,
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]:before,
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=content]:after,
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=content]:before {
+            display: none !important
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]>div[data-marpit-advanced-background-container] {
+            all: initial;
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+            overflow: hidden;
+            width: 100%
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]>div[data-marpit-advanced-background-container][data-marpit-advanced-background-direction=vertical] {
+            flex-direction: column
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background][data-marpit-advanced-background-split]>div[data-marpit-advanced-background-container] {
+            width: var(--marpit-advanced-background-split, 50%)
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background][data-marpit-advanced-background-split=right]>div[data-marpit-advanced-background-container] {
+            margin-left: calc(100% - var(--marpit-advanced-background-split, 50%))
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]>div[data-marpit-advanced-background-container]>figure {
+            all: initial;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            flex: auto;
+            margin: 0
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=background]>div[data-marpit-advanced-background-container]>figure>figcaption {
+            position: absolute;
+            border: 0;
+            clip: rect(0, 0, 0, 0);
+            height: 1px;
+            margin: -1px;
+            overflow: hidden;
+            padding: 0;
+            white-space: nowrap;
+            width: 1px
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=content],
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=pseudo] {
+            background: transparent !important
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background=pseudo],
+        div#\:\$p>svg[data-marpit-svg]>foreignObject[data-marpit-advanced-background=pseudo] {
+            pointer-events: none !important
+        }
+
+        div#\:\$p>svg>foreignObject>section[data-marpit-advanced-background-split] {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bespoke-marp-osc"><button data-bespoke-marp-osc="prev" tabindex="-1" title="Previous slide">Previous
+            slide</button><span data-bespoke-marp-osc="page"></span><button data-bespoke-marp-osc="next" tabindex="-1"
+            title="Next slide">Next slide</button><button data-bespoke-marp-osc="fullscreen" tabindex="-1"
+            title="Toggle fullscreen (f)">Toggle fullscreen</button><button data-bespoke-marp-osc="presenter"
+            tabindex="-1" title="Open presenter view (p)">Open presenter view</button></div>
+    <div id=":$p"><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="1" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="1"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h1 id="classical-tcp-improvements">Classical TCP Improvements</h1>
+                    <h2 id="asmin-bhattarai">Asmin Bhattarai</h2>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="2" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="2"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="overview">Overview</h2>
+                    <ul>
+                        <li>Basics of TCP Protocol &amp; its Working</li>
+                        <li>Flow Control Basics</li>
+                        <li>TCP Improvements
+                            <ul>
+                                <li>Indirect TCP</li>
+                                <li>Snooping TCP</li>
+                                <li>Mobile TCP</li>
+                                <li>Time Out Freezing</li>
+                                <li>Selective Retransmission</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="3" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="3"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="what-is-tcp">What is TCP?</h2>
+                    <ul>
+                        <li>Transmission Control Protocol (TCP) is a connection-oriented protocol for communications
+                            that helps in the exchange of messages between different devices over a network.</li>
+                        <li>The position of TCP is at the transport layer of the OSI model.</li>
+                        <li>Ensures reliable, ordered, and error-checked delivery of data between applications running
+                            on hosts communicating over an IP network.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="4" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="4"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="tcp-header-image">TCP Header (Image)</h2>
+                    <p><img src="img/tcp_header.png" alt="" style="width:800px;height:600px;" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="5" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="5"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-tcp">Working of TCP</h2>
+                    <p>TCP model breaks down the data into small bundles and afterward reassembles the bundles into the
+                        original message on the opposite end to make sure that each message reaches its target location
+                        intact. Sending the information in little bundles of information makes it simpler to maintain
+                        efficiency as opposed to sending everything in one go.</p>
+                    <p>After a particular message is broken down into bundles, these bundles may travel along multiple
+                        routes if one route is jammed but the destination remains the same.</p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="6" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="6"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-tcp-image">Working of TCP (Image)</h2>
+                    <p><img src="img/tcp_working.gif" alt="Working of TCP" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="7" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="7"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-tcp-example">Working of TCP (Example)</h2>
+                    <p>When a user requests a web page on the internet, somewhere in the world, the server processes
+                        that request and sends back an HTML Page to that user. The server makes use of a protocol called
+                        the HTTP Protocol. The HTTP then requests the TCP layer to set the required connection and send
+                        the HTML file.</p>
+                    <p>Now, the TCP breaks the data into small packets and forwards it toward the Internet Protocol (IP)
+                        layer. The packets are then sent to the destination through different routes.</p>
+                    <p>The TCP layer in the user's system waits for the transmission to get finished and acknowledges
+                        once all packets have been received.</p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="8" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="8"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-tcp-example-image">Working of TCP (Example Image)</h2>
+                    <p><img src="img/tcp_example.png" alt="Example Image" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="9" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="9"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="features-of-tcp">Features of TCP</h2>
+                    <ul>
+                        <li>
+                            <p><strong>Segment Numbering System</strong>: A specific Byte Number is assigned to data
+                                bytes that are to be transferred while segments are assigned sequence numbers.
+                                Acknowledgment Numbers are assigned to received segments.</p>
+                        </li>
+                        <li>
+                            <p><strong>Flow Control</strong>: Flow control limits the rate at which a sender transfers
+                                data to ensure reliable delivery.</p>
+                        </li>
+                        <li>
+                            <p><strong>Error Control</strong>: TCP implements an error control mechanism for reliable
+                                data transfer. Error control is byte-oriented. Segments are checked for error detection.
+                                Error Control includes – Corrupted Segment &amp; Lost Segment Management, Out-of-order
+                                segments, Duplicate segments, etc.</p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="10" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="10"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="features-of-tcp-contd">Features of TCP (Contd.)</h2>
+                    <ul>
+                        <li>
+                            <p><strong>Congestion Control</strong>: TCP takes into account the level of congestion in
+                                the network. Congestion level is determined by the amount of data sent by a sender.</p>
+                        </li>
+                        <li>
+                            <p><strong>Full Duplex</strong>: Data can be transmitted from receiver to the sender or vice
+                                – versa at the same time.</p>
+                        </li>
+                        <li>
+                            <p><strong>Connection Oriented</strong>: Sender and receiver are connected to each other
+                                till the completion of the process</p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="11" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="11"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="advantages-of-tcp">Advantages of TCP</h2>
+                    <ul>
+                        <li>It is a reliable protocol.</li>
+                        <li>It provides an error-checking mechanism as well as one for recovery.</li>
+                        <li>It gives flow control.</li>
+                        <li>It makes sure that the data reaches the proper destination in the exact order that it was
+                            sent.</li>
+                        <li>It is a well-documented and widely implemented protocol, maintained by standards
+                            organizations like the IETF (Internet Engineering Task Force).</li>
+                        <li>It works in conjunction with IP (Internet Protocol) to establish connections between devices
+                            on a network.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="12" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="12"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="disadvantages-of-tcp">Disadvantages of TCP</h2>
+                    <ul>
+                        <li>TCP is made for Wide Area Networks, thus its size can become an issue for small networks
+                            with low resources.</li>
+                        <li>TCP runs several layers so it can slow down the speed of the network.</li>
+                        <li>It is not generic in nature. Meaning, it cannot represent any protocol stack other than the
+                            TCP/IP suite. E.g., it cannot work with a Bluetooth connection.</li>
+                        <li>No modifications since their development around 30 years ago.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="13" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="13"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="what-is-flow-control">What is Flow Control?</h2>
+                    <ul>
+                        <li>Flow control is design issue at Data Link Layer.</li>
+                        <li>It is a technique that generally observes the proper flow of data from sender to receiver.
+                        </li>
+                        <li>It is a technique that gives permission to two of stations that are working and processing
+                            at different speeds to just communicate with one another.</li>
+                        <li>Flow control restricts and coordinates number of frames or amount of data sender can send
+                            just before it waits for an acknowledgement from receiver.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="14" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="14"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="approaches-and-techniques-in-flow-control">Approaches and Techniques in Flow Control</h2>
+                    <p><img src="img/fc_approach.png" alt="Approaches" /></p>
+                    <p><img src="img/fc_technique.png" alt="Techniques" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="15" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="15"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="can-tcp-be-applied-for-mobile-hosts">Can TCP be applied for Mobile Hosts?</h2>
+                    <p>TCP was not designed for mobile host so it is not expected to perform well in wireless/mobile
+                        network when a packet is loss, regular TCP assumes that it is due to congestion. Whereas in
+                        mobile networks there can be packet losses unrelated to congestion.</p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="16" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="16"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="packet-loss-in-mobile-networks">Packet Loss in Mobile Networks</h2>
+                    <ul>
+                        <li><strong>Black Outs</strong>: Hard Handover- there is brief disconnection known as black out
+                            period.</li>
+                        <li><strong>Call Blocking</strong>: Disconnections due to call blocking; a condition when mobile
+                            station do not get any channel due to unavailability of the channels.</li>
+                        <li><strong>Disconnection due to small cell latencies</strong>: When the cell sizes are small to
+                            accommodate more and more users and increase the capacity results in small cell latencies
+                            and hence frequency disconnection.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="17" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="17"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="packet-loss-in-mobile-networks-contd">Packet Loss in Mobile Networks (Contd.)</h2>
+                    <ul>
+                        <li>
+                            <p><strong>Signal Blocking</strong>: When radio signals are blocked due to buildings and
+                                other objects in the environment.</p>
+                        </li>
+                        <li>
+                            <p><strong>Power Scarcity</strong>: Mobile computers are battery operated hence power
+                                required is more.</p>
+                        </li>
+                        <li>
+                            <p><strong>High Bit Error Rate</strong>: Wireless links suffer from a high bit error rate.
+                            </p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="18" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="18"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="what-is-tcp-improvemnt">What is TCP Improvemnt?</h2>
+                    <ul>
+                        <li>Enhancements and modifications to the TCP designed to optimize its performance, increase
+                            efficiency, and adapt to evolving network environments and requirements.</li>
+                        <li>These improvements typically focus on aspects such as congestion control, error handling,
+                            data throughput, latency reduction, and network utilization.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="19" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="19"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="indirect-tcp-i-tcp">Indirect TCP (I-TCP)</h2>
+                    <ul>
+                        <li>It is a split connection protocol.</li>
+                        <li>It splits an End-to End TCP connection between fixed host and mobile host into two separate
+                            connections at an intermediate called MSR (Mobility support router).</li>
+                        <li>MSR can be an access point, foreign agent in case mobile IP, entry point of network like IWF
+                            in GSM, GGSN in case of GPRS.</li>
+                        <li>The link between fixed computer and AP is supported by regular TCP and between MSR and
+                            mobile node optimized TCP is used.</li>
+                        <li>The MSR acts as proxy between fixed computer and wireless node. It is seen as wireless node
+                            to fixed computer as fixed computer to wireless node.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="20" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="20"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="i-tcp-image">I-TCP (Image)</h2>
+                    <p><img src="img/i_tcp_1.png" alt="I-TCP" /></p>
+                    <p><img src="img/i_tcp_2.png" alt="I-TCP" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="21" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="21"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-i-tcp">Working of I-TCP:</h2>
+                    <h2 id="fixed-node-to-wireless-node">(Fixed node to Wireless Node)</h2>
+                    <ul>
+                        <li>Sender sends packet to MSR.</li>
+                        <li>It acts as proxy; buffers the packets; gives acknowledgement to the receiver.</li>
+                        <li>MSR then forwards packet to mobile host</li>
+                        <li>If packet is lost on wired link, standard TCP handles it.</li>
+                        <li>If packet lost on wireless link, MSR re-transmits with low round trip time.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="22" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="22"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-i-tcp-1">Working of I-TCP:</h2>
+                    <h2 id="wireless-node-to-fixed-node">(Wireless Node to Fixed Node)</h2>
+                    <ul>
+                        <li>Mobile node sends the packet.</li>
+                        <li>MSR acknowledges it and forwards to the fixed computer.</li>
+                        <li>If packet is lost, it is retransmitted on wireless with lower round trip time.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="23" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="23"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-i-tcp-handovers">Working of I-TCP: Handovers</h2>
+                    <ul>
+                        <li>At the time of handover, old proxy forwards the packets to the new proxy because
+                            acknowledgements are already sent for those packets.</li>
+                        <li>New MSR then forwards those packets to the mobile host.</li>
+                        <li>Current state of TCP (sequence numbers, address, ports) should be reflected by socket.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="24" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="24"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="i-tcp-handovers-image">I-TCP Handovers (Image)</h2>
+                    <p><img src="img/i_tcp_handover.png" alt="" style="width:800px;" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="25" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="25"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="i-tcp-software-components">I-TCP: Software Components</h2>
+                    <ul>
+                        <li><strong>MH Side</strong>: I-TCP can be accessed as a transport protocol by application
+                            running on mobile host using special library calls. They are similar in interface and
+                            function to the socket calls made by an application using register end – to – end TCP.</li>
+                        <li><strong>MSR Side</strong>: In the proposed protocol, most of the functionality for
+                            supporting I-TCP connection lies with the MSR. If acts as actual bridge connecting the wired
+                            and wireless parts of the connection. It consists of a user level UNIX process pumping data
+                            from one part of connection to the other. Hand off support for I-TCP connection is
+                            implemented in MSR kernels.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="26" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="26"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="i-tcp-advantages">I-TCP: Advantages</h2>
+                    <ul>
+                        <li>No need to make changes in TCP protocol used by computers in fixed network or any other
+                            device which do not need optimization.</li>
+                        <li>Transmission error on wireless links do not propagate in fixed network.</li>
+                        <li>The optimized TCP is used only on wireless link without affecting stability of internet.
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="27" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="27"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="i-tcp-disadvantages">I-TCP: Disadvantages</h2>
+                    <ul>
+                        <li>Loss of end – to – end semantics packets already acknowledgements before being delivered.
+                        </li>
+                        <li>Whole scheme fails if MSR crashes.</li>
+                        <li>Increased handover tendency.</li>
+                        <li>MSR should be a trusted entity. Serious security threat if MSR is compromised.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="28" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="28"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="snooping-tcp">Snooping TCP</h2>
+                    <ul>
+                        <li>The Snooping TCP was proposed by Balakrishnaetal in 1995.</li>
+                        <li>This approach is designed in such a way so as to overcome the end-to-end semantics loss in
+                            I-TCP.</li>
+                        <li>Snooping TCP offers a transparent design which leave the end-end connection of TCP intact.
+                        </li>
+                        <li>Basic idea is to buffer packets close to mobile host and perform local re-transmission in
+                            case of packet loss.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="29" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="29"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="architecture-of-snooping-protocol">Architecture of Snooping Protocol</h2>
+                    <p><img src="img/snooping_tcp.png" alt="" style="height:400px;" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="30" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="30"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="snooping-tcp-working">Snooping TCP: Working</h2>
+                    <ul>
+                        <li>Until it receives an acknowledgement from the mobile node, the foreign agent buffers the
+                            packet.</li>
+                        <li>A foreign agent snoops the packet flow and acknowledgement in both directions.</li>
+                        <li>If the foreign agent does not receive an acknowledgement from the mobile node, or if it
+                            receives duplicate acknowledgements, it believes that the packet or acknowledgement has been
+                            lost. - The packet is immediately retransmitted by the foreign agent from its buffer.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="31" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="31"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h1 id="snooping-tcp-working-contd">Snooping TCP: Working (Contd.)</h1>
+                    <ul>
+                        <li>In addition, the foreign agent maintains its own timer for retransmission of buffered
+                            packets in case it is lost on the wireless link.</li>
+                        <li>While data transfer from the mobile node to the correspondent node, if the foreign agent
+                            detects a missing packet, it returns NACK-Negative Acknowledgment to the mobile node. It can
+                            now retransmit missing packet immediately. Reordering of packets is done automatically at
+                            the correspondent node by TCP.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="32" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="32"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h1 id="snooping-tcp-working-contd-1">Snooping TCP: Working (Contd.)</h1>
+                    <ul>
+                        <li>In the concept of snooping TCP, the Time-out of the correspondent node still works and
+                            triggers retransmission, if the foreign agent now crashes.</li>
+                        <li>The foreign agent may discard duplicates of packets already retransmitted locally and
+                            acknowledged by the mobile node. This avoids unnecessary traffic on the wireless link.</li>
+                        <li>To maintain transparency foreign agent does not acknowledge the packet to the fixed node,
+                            but the mobile node acknowledges the packets (END-TO-END Semantics is maintained).</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="33" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="33"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h1 id="snooping-tcp-working-image">Snooping TCP: Working (Image)</h1>
+                    <p><img src="img/snooping_working.png" alt="Working of Snooping TCP" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="34" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="34"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h1 id="snooping-tcp-advantages">Snooping TCP: Advantages</h1>
+                    <ul>
+                        <li>
+                            <p><strong>The end-to-end TCP semantic is preserved</strong>:<br />
+                                The packet is not acknowledged by the FA. And if the foreign agent (FA) or base station
+                                (BS) fails, the solution reverts to standard TCP.</p>
+                        </li>
+                        <li>
+                            <p><strong>No Modifications at Fixed Host</strong>:<br />
+                                The fixed computer TCP does not need any changes. The majority of the changes are made
+                                at the foreign agent (FA).</p>
+                        </li>
+                        <li>
+                            <p><strong>No packet loss during handovers</strong>:<br />
+                                In the case of a handover, if any data is not passed to the new foreign agent, there
+                                will be a time-out at the fixed host and activating retransmission of the packet, via
+                                mobile IP, to a new COA.</p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="35" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="35"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="snooping-tcp-disadvantages">Snooping TCP: Disadvantages</h2>
+                    <ul>
+                        <li>
+                            <p><strong>The behavior of the wireless link</strong>:<br />
+                                Snooping TCP does not isolate the behavior of the wireless link or I-TCP.</p>
+                        </li>
+                        <li>
+                            <p><strong>A mobile node needs additional mechanisms</strong>:<br />
+                                The use of NACK between the foreign agent and the mobile node requires the mobile node
+                                to have additional mechanisms.</p>
+                        </li>
+                        <li>
+                            <p><strong>Encryption at end-to-end</strong>:<br />
+                                If such encryption schemes are used end-to-end between the correspondent node and mobile
+                                node, snooping and buffering data can be considered worthless. Snooping TCP may be used
+                                if encryption is used above the transport layer (e.g. SSL/TLS).</p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="36" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="36"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="problems-with-existing-solutions-during-disconnections-in-mobile-environemnt">Problems with
+                        existing solutions during disconnections in mobile environemnt</h2>
+                    <ul>
+                        <li>If the mobile is disconnected for a long period of time, the sender will invoke congestion
+                            control.</li>
+                        <li>For Snooping TCP, in the case of handoff's the new snoop will start with empty cache and
+                            till the cache is built ,there would be no retransmission or filtering and there would be
+                            decrease in throughput. The problem of degradation would be more serious when cell sizes are
+                            small (pico or micro cell) environment</li>
+                        <li><strong>Serial Timeout</strong></li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="37" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="37"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="serial-timeout">Serial Timeout</h2>
+                    <p>A serial time out is a condition where in multiple consecutive retransmissions of same segment
+                        are transmitted to mobile while it is disconnected and these retransmissions are also loss. The
+                        retransmission timer also gets doubled with every retransmission.</p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="38" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="38"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="serial-timeout-image">Serial Timeout (Image)</h2>
+                    <p><img src="img/serial_timeout.png" alt="Serial Timeout" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="39" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="39"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp">M-TCP</h2>
+                    <ul>
+                        <li>The authors of M-TCP proposed it as three-layer architecture.</li>
+                        <li>Lowest level- Mobile host.</li>
+                        <li>Next level- MSS (Mobile support station) is a node which controls mobile host.</li>
+                        <li>Highest level- SH or a supervisory host controlling many MSS.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="40" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="40"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-image">M-TCP (Image)</h2>
+                    <p><img src="img/m_tcp.png" alt="M-TCP" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="41" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="41"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-image-1">M-TCP (Image)</h2>
+                    <p><img src="img/m_tcp_working.png" alt="Working of M-TCP" style="width:800px;" /></p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="42" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="42"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-m-tcp-overall">Working of M-TCP (Overall)</h2>
+                    <ul>
+                        <li>The TCP sender on fixed network uses unmodified TCP to send data to the SH while SH uses
+                            modified TCP to send data to the MH.</li>
+                        <li>The TCP client at SH receiving data from fixed host is called SH-TCP.</li>
+                        <li>TCP client at SH towards MH is called M-TCP .It receives packets from SH-TCP and passes to
+                            mobile host.</li>
+                        <li>The acknowledgements are received by M-TCP from mobile host and forwarded to SH- TCP which
+                            delivers it to the fixed host</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="43" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="43"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="working-of-m-tcp-sh-tcp">Working of M-TCP (SH-TCP)</h2>
+                    <ul>
+                        <li>SH-TCP receives a packet from fixed host.</li>
+                        <li>It passes it to M-TCP client.</li>
+                        <li>It does not acknowledge maintaining end-to-end semantics.</li>
+                        <li>M-TCP at SH passes the packet to MH.</li>
+                        <li>It receives ACK's from Mobile host via M-TCP<br />
+                            Sends the ACK's to Fixed Host.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="44" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="44"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-approach-to-disconnection">M-TCP: Approach to Disconnection</h2>
+                    <ul>
+                        <li>In a situation when disconnection is there, the approach is to choke the TCP sender when
+                            mobile device is disconnected &amp; allow the sender to transmit at full speed when the
+                            connection is regained.</li>
+                        <li>The mode with choked window is called persist mode.</li>
+                        <li>According to RFC 1112, TCP clients go to persistent mode when window size is shrunk to zero.
+                        </li>
+                        <li>For this purpose, a new Ack is required. SH-TCP follows a strategy to send the sender into
+                            persistent mode.</li>
+                        <li>It keeps one Ack from mobile host unacknowledged.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="45" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="45"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-example">M-TCP: Example</h2>
+                    <ul>
+                        <li>Suppose the window size is 100.</li>
+                        <li>70 bytes are sent to mobile host.</li>
+                        <li>Mobile host Acks all 70 bytes.</li>
+                        <li>The SH-TCP sends Ack for only 69 bytes to the sender.</li>
+                        <li>When the MH goes into disconnection state after acknowledging 70 bytes, it stops sending
+                            Acks.</li>
+                        <li>When M-TCP does not receive Ack's it assumes the mobile to be disconnected and informs SH
+                            TCP.</li>
+                        <li>It uses the last Ack for 70th byte.</li>
+                        <li>Sends it to TCP sender along with window size update.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="46" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="46"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-example-contd">M-TCP: Example (Contd.)</h2>
+                    <ul>
+                        <li>When TCP sender receives window size update message, it goes into persistent mode.</li>
+                        <li>As long as the sender is in the persistent mode, no time out occur, no exponential back off
+                            of retransmission timers occur and neither it goes into slow start when connection is
+                            regained.</li>
+                        <li>When the MH regains the connection, it sends a greeting packet to SH.</li>
+                        <li>M-TCP receives it, passes it to SH-TCP.</li>
+                        <li>SH-TCP sends Ack to the sender and reopens it's receive window.</li>
+                        <li>The sender leaves persist mode and begin sending data again at full speed from bytes number
+                            w+1 where w is the last acknowledged byte.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="47" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="47"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-issue-and-solution">M-TCP: Issue and Solution</h2>
+                    <ul>
+                        <li>The only issue with this strategy is when there only w' bytes to be sent to MH.</li>
+                        <li>According to protocol, SH-TCP would send Ack's for only w'-1.</li>
+                        <li>This will cause timeout at sender &amp; trigger retransmission and after 12 retrains sender
+                            will quit.</li>
+                        <li>The solution to this is that when SH-TCP understands that there are no more Acks from the MH
+                            it should not allow the sender to go in persist mode. It should send the Ack for last byte.
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="48" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="48"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-advantages">M-TCP: Advantages</h2>
+                    <ul>
+                        <li>MSS are cheaper devices as they serve as only connection points whereas in I-TCP &amp; snoop
+                            protocols, sophisticated MSS are used. Hence cost of infrastructure is increases
+                            particularly in case of picocelluar networks.</li>
+                        <li>No need to transfer the states when MH roams from one cell into another controlled by same
+                            MH.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="49" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="49"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-limitations">M-TCP: Limitations</h2>
+                    <ul>
+                        <li>Errors on wireless link are also propagated to the fixed sender.</li>
+                        <li>It assumes bit error rate to be very low which is not a valid assumption.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="50" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="50"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="m-tcp-summary">M-TCP: Summary</h2>
+                    <ul>
+                        <li>M-TCP is proposed protocol which deals with packet losses due to frequent disconnections.
+                        </li>
+                        <li>Idea is to choke the senders window during the period of disconnection and re-transmit with
+                            full speed when connection is gained hence avoiding slow start.</li>
+                        <li>The protocol divides TCP connection into two parts at supervisory host. It forwards packets
+                            but do not acknowledges them maintaining end-to-end semantics.</li>
+                        <li>It has limitation of not isolating the wired and wireless connections.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="51" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="51"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing">Time Out Freezing</h2>
+                    <ul>
+                        <li>Timeout Freezing is a strategy designed to handle the disconnection of mobile hosts (MHs)
+                            more gracefully, particularly when they experience extended periods of no connectivity.</li>
+                        <li>Mobile hosts can be disconnected for a longer time:
+                            <ul>
+                                <li>Moving into areas with no coverage or weak signal (e.g., tunnels).</li>
+                                <li>Network issues, such as overload or prioritization of other traffic.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="52" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="52"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-challenges">Time Out Freezing: Challenges</h2>
+                    <ul>
+                        <li><strong>Packet Exchange Inhibition</strong>: During disconnections, no packets are exchanged
+                            between the mobile host and the sender.</li>
+                        <li><strong>TCP Timeout</strong>: Traditional TCP might time out and disconnect the session if
+                            no data is transmitted for a specified period, even though the disconnection might be
+                            temporary.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="53" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="53"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-working">Time Out Freezing: Working</h2>
+                    <ul>
+                        <li>
+                            <p><strong>MAC Layer Notification</strong>:</p>
+                            <ul>
+                                <li>The Media Access Control (MAC) layer can often detect when a mobile host is about to
+                                    lose connectivity.</li>
+                                <li>This detection could be due to changes in the signal strength, handoffs, or other
+                                    indicators of imminent disconnection.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <p><strong>Informing TCP Layer</strong>:</p>
+                            <ul>
+                                <li>The MAC layer informs the TCP layer that a disconnection is imminent or has
+                                    occurred.</li>
+                                <li>This allows the TCP layer to take preemptive actions to handle the disconnection
+                                    gracefully.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="54" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="54"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-working-contd">Time Out Freezing: Working (Contd.)</h2>
+                    <ul>
+                        <li><strong>Action on Disconnection</strong>:
+                            <ul>
+                                <li>The TCP layer stops sending new data to avoid unnecessary retransmissions and
+                                    congestion.</li>
+                                <li>Rather than assuming network congestion (which would trigger standard congestion
+                                    control mechanisms), TCP recognizes that the issue is due to connectivity loss.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="55" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="55"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-working-contd-1">Time Out Freezing: Working (Contd.)</h2>
+                    <ul>
+                        <li><strong>Reconnection Notification</strong>:
+                            <ul>
+                                <li>Once the MAC layer detects that the mobile host has reconnected, it signals the TCP
+                                    layer.</li>
+                                <li>The TCP layer can then resume data transmission from where it left off, without
+                                    going through a full connection teardown and re-establishment process.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="56" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="56"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-advantages">Time Out Freezing: Advantages</h2>
+                    <ul>
+                        <li><strong>Independence from Data and TCP Mechanisms</strong>:
+                            <ul>
+                                <li><strong>Protocol Agnostic</strong>: The Timeout Freezing scheme is designed to work
+                                    independently of the specific data being transmitted and the internal mechanisms of
+                                    TCP, such as ACKs and SNs. This means it can be implemented without requiring
+                                    changes to the TCP protocol itself.</li>
+                                <li><strong>Compatibility with IPsec</strong>: Since Timeout Freezing operates at a
+                                    level that doesn't interfere with the details of TCP's operation or data, it remains
+                                    compatible with IPsec (Internet Protocol Security). IPsec handles security at the IP
+                                    layer, and Timeout Freezing focuses on connection management and disconnection
+                                    handling, so they can work together seamlessly.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="57" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="57"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-advantages-contd">Time Out Freezing: Advantages (Contd.)</h2>
+                    <ul>
+                        <li>
+                            <p><strong>Improved Handling of Mobile Disconnections</strong>:</p>
+                            <ul>
+                                <li><strong>Graceful Disconnection Management</strong>: By allowing TCP to stop sending
+                                    data and avoiding the assumption of congestion, Timeout Freezing handles temporary
+                                    disconnections more gracefully. This helps in maintaining the connection and
+                                    avoiding unnecessary retransmissions or connection terminations.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <p><strong>Efficient Recovery</strong>:</p>
+                            <ul>
+                                <li><strong>Seamless Resumption</strong>: When the mobile host reconnects, the Timeout
+                                    Freezing mechanism allows for a smoother transition back to normal data transfer
+                                    without the need to re-establish the entire connection, thus enhancing user
+                                    experience.</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="58" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="58"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-disadvantages">Time Out Freezing: Disadvantages</h2>
+                    <ul>
+                        <li>
+                            <p><strong>Requires Changes to TCP on Mobile Host</strong>: Implementing Timeout Freezing
+                                requires changes to the TCP implementation on the mobile host. This can be challenging,
+                                particularly if widespread deployment of new TCP implementations is not feasible. It may
+                                involve updating or modifying the TCP stack to integrate with the Timeout Freezing
+                                mechanism.</p>
+                        </li>
+                        <li>
+                            <p><strong>Reliability of MAC Layer</strong>: The effectiveness of Timeout Freezing depends
+                                heavily on the MAC layer’s ability to accurately detect imminent disconnections and
+                                inform the TCP layer in advance. If the MAC layer fails to provide timely and accurate
+                                notifications, the Timeout Freezing mechanism may not perform as intended.</p>
+                        </li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="59" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="59"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="time-out-freezing-disadvantages-contd">Time Out Freezing: Disadvantages (Contd.)</h2>
+                    <ul>
+                        <li><strong>Coordination Complexity</strong>: The coordination between the MAC layer and the TCP
+                            layer adds complexity to the system. Proper signaling and synchronization between these
+                            layers are essential for Timeout Freezing to work effectively, which might complicate
+                            implementation and maintenance.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="60" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="60"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="cumulative-acks">Cumulative ACKs</h2>
+                    <ul>
+                        <li><strong>Definition</strong>: ACKs confirm receipt of all packets up to a specific sequence
+                            number.</li>
+                        <li><strong>Limitation</strong>: Missing packets require retransmission of all subsequent
+                            packets (<em>Go-Back-N approach</em>), leading to potential bandwidth wastage.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="61" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="61"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="selective-retransmission">Selective Retransmission</h2>
+                    <ul>
+                        <li><strong>RFC 2018</strong>: This RFC introduces the Selective Acknowledgment (SACK) option to
+                            TCP. SACK allows receivers to inform the sender about specific packets that have been
+                            received successfully, including those that were not received in sequence.</li>
+                        <li><strong>Mechanism</strong>: With SACK, a receiver can send back acknowledgments for
+                            individual packets or ranges of packets that have been received. This enables the sender to
+                            retransmit only the missing packets rather than the entire sequence from the first missing
+                            packet.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="62" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="62"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="selective-retransmission-advantages">Selective Retransmission: Advantages</h2>
+                    <ul>
+                        <li><strong>Bandwidth Utilization</strong>: By retransmitting only the specific missing packets,
+                            SACK reduces unnecessary data transmission and bandwidth usage. This can be especially
+                            beneficial in networks with high error rates or where large amounts of data are transmitted.
+                        </li>
+                        <li><strong>Reduced Latency</strong>: Faster recovery from packet loss can lead to reduced
+                            latency and improved overall throughput.</li>
+                        <li><strong>Fewer Retransmissions</strong>: Minimizes the amount of data that needs to be
+                            retransmitted, leading to more efficient data recovery and better performance in
+                            high-latency or lossy environments.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="63" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="63"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="selective-retransmission-disadvantages">Selective Retransmission: Disadvantages</h2>
+                    <ul>
+                        <li><strong>Receiver Complexity</strong>: Implementing SACK requires more sophisticated software
+                            on the receiver side to handle selective acknowledgments and maintain state information
+                            about received packets.</li>
+                        <li><strong>Buffer Requirements</strong>: Receivers need additional buffer space to store
+                            out-of-order packets and maintain the necessary metadata to support SACK.</li>
+                        <li><strong>Additional Header Information</strong>: SACK introduces extra headers and metadata
+                            to convey the selective acknowledgments, which adds some overhead to each TCP segment.</li>
+                    </ul>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="64" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="64"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="questions">Questions?</h2>
+                    <p>Feel free to ask!</p>
+                </section>
+            </foreignObject>
+        </svg><svg data-marpit-svg="" viewBox="0 0 1280 720">
+            <foreignObject width="1280" height="720">
+                <section id="65" data-class="lead invert" data-paginate="true" data-theme="gaia" lang="en-US"
+                    class="lead invert" data-marpit-pagination="65"
+                    style="--class:lead invert;--paginate:true;--theme:gaia;" data-marpit-pagination-total="65">
+                    <h2 id="references">References</h2>
+                    <ul>
+                        <li>
+                            <p><a href="https://chatgpt.com/">ChatGPT</a></p>
+                        </li>
+                        <li>
+                            <p><a href="https://ebooks.inflibnet.ac.in/itp12/">eBook: Mobile Computing</a></p>
+                        </li>
+                        <li>
+                            <p><a href="https://www.geeksforgeeks.org/snooping-tcp/">GeeksforGeeks: Snooping TCP</a></p>
+                        </li>
+                        <li>
+                            <p><a
+                                    href="https://www.khoury.northeastern.edu/home/rraj/Courses/6710/S10/Lectures/TCPForWireless.pdf">TCP
+                                    For Wirelesss</a></p>
+                        </li>
+                    </ul>
+                </section>
+                <script>!function () { "use strict"; const t = { h1: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "1" }, style: "display: block; font-size: 2em; margin-block-start: 0.67em; margin-block-end: 0.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, h2: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "2" }, style: "display: block; font-size: 1.5em; margin-block-start: 0.83em; margin-block-end: 0.83em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, h3: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "3" }, style: "display: block; font-size: 1.17em; margin-block-start: 1em; margin-block-end: 1em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, h4: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "4" }, style: "display: block; margin-block-start: 1.33em; margin-block-end: 1.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, h5: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "5" }, style: "display: block; font-size: 0.83em; margin-block-start: 1.67em; margin-block-end: 1.67em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, h6: { proto: () => HTMLHeadingElement, attrs: { role: "heading", "aria-level": "6" }, style: "display: block; font-size: 0.67em; margin-block-start: 2.33em; margin-block-end: 2.33em; margin-inline-start: 0px; margin-inline-end: 0px; font-weight: bold;" }, span: { proto: () => HTMLSpanElement }, pre: { proto: () => HTMLElement, style: "display: block; font-family: monospace; white-space: pre; margin: 1em 0; --marp-auto-scaling-white-space: pre;" } }, e = "data-marp-auto-scaling-wrapper", i = "data-marp-auto-scaling-svg", n = "data-marp-auto-scaling-container"; class s extends HTMLElement { constructor() { super(), this.svgPreserveAspectRatio = "xMinYMid meet"; const t = t => ([e]) => { const { width: i, height: n } = e.contentRect; this[t] = { width: i, height: n }, this.updateSVGRect() }; this.attachShadow({ mode: "open" }), this.containerObserver = new ResizeObserver(t("containerSize")), this.wrapperObserver = new ResizeObserver(((...e) => { t("wrapperSize")(...e), this.flushSvgDisplay() })) } static get observedAttributes() { return ["data-downscale-only"] } connectedCallback() { var t, s, o, r, a; this.shadowRoot.innerHTML = `\n<style>\n  svg[${i}] { display: block; width: 100%; height: auto; vertical-align: top; }\n  span[${n}] { display: table; white-space: var(--marp-auto-scaling-white-space, nowrap); width: max-content; }\n</style>\n<div ${e}>\n  <svg part="svg" ${i}>\n    <foreignObject><span ${n}><slot></slot></span></foreignObject>\n  </svg>\n</div>\n    `.split(/\n\s*/).join(""), this.wrapper = null !== (t = this.shadowRoot.querySelector(`div[${e}]`)) && void 0 !== t ? t : void 0; const l = this.svg; this.svg = null !== (o = null === (s = this.wrapper) || void 0 === s ? void 0 : s.querySelector(`svg[${i}]`)) && void 0 !== o ? o : void 0, this.svg !== l && (this.svgComputedStyle = this.svg ? window.getComputedStyle(this.svg) : void 0), this.container = null !== (a = null === (r = this.svg) || void 0 === r ? void 0 : r.querySelector(`span[${n}]`)) && void 0 !== a ? a : void 0, this.observe() } disconnectedCallback() { this.svg = void 0, this.svgComputedStyle = void 0, this.wrapper = void 0, this.container = void 0, this.observe() } attributeChangedCallback() { this.observe() } flushSvgDisplay() { const { svg: t } = this; t && (t.style.display = "inline", requestAnimationFrame((() => { t.style.display = "" }))) } observe() { this.containerObserver.disconnect(), this.wrapperObserver.disconnect(), this.wrapper && this.wrapperObserver.observe(this.wrapper), this.container && this.containerObserver.observe(this.container), this.svgComputedStyle && this.observeSVGStyle(this.svgComputedStyle) } observeSVGStyle(t) { const e = () => { const i = (() => { const e = t.getPropertyValue("--preserve-aspect-ratio"); if (e) return e.trim(); return `x${(({ textAlign: t, direction: e }) => { if (t.endsWith("left")) return "Min"; if (t.endsWith("right")) return "Max"; if ("start" === t || "end" === t) { let i = "rtl" === e; return "end" === t && (i = !i), i ? "Max" : "Min" } return "Mid" })(t)}YMid meet` })(); i !== this.svgPreserveAspectRatio && (this.svgPreserveAspectRatio = i, this.updateSVGRect()), t === this.svgComputedStyle && requestAnimationFrame(e) }; e() } updateSVGRect() { var t, e, i, n, s, o, r; let a = Math.ceil(null !== (e = null === (t = this.containerSize) || void 0 === t ? void 0 : t.width) && void 0 !== e ? e : 0); const l = Math.ceil(null !== (n = null === (i = this.containerSize) || void 0 === i ? void 0 : i.height) && void 0 !== n ? n : 0); void 0 !== this.dataset.downscaleOnly && (a = Math.max(a, null !== (o = null === (s = this.wrapperSize) || void 0 === s ? void 0 : s.width) && void 0 !== o ? o : 0)); const c = null === (r = this.svg) || void 0 === r ? void 0 : r.querySelector(":scope > foreignObject"); if (null == c || c.setAttribute("width", `${a}`), null == c || c.setAttribute("height", `${l}`), this.svg && (this.svg.setAttribute("viewBox", `0 0 ${a} ${l}`), this.svg.setAttribute("preserveAspectRatio", this.svgPreserveAspectRatio), this.svg.style.height = a <= 0 || l <= 0 ? "0" : ""), this.container) { const t = this.svgPreserveAspectRatio.toLowerCase(); this.container.style.marginLeft = t.startsWith("xmid") || t.startsWith("xmax") ? "auto" : "0", this.container.style.marginRight = t.startsWith("xmi") ? "auto" : "0" } } } const o = (t, { attrs: e = {}, style: i }) => class extends t { constructor(...t) { super(...t); for (const [t, i] of Object.entries(e)) this.hasAttribute(t) || this.setAttribute(t, i); this.attachShadow({ mode: "open" }) } static get observedAttributes() { return ["data-auto-scaling"] } connectedCallback() { this._update() } attributeChangedCallback() { this._update() } _update() { const t = i ? `<style>:host { ${i} }</style>` : ""; let e = "<slot></slot>"; const { autoScaling: n } = this.dataset; if (void 0 !== n) { e = `<marp-auto-scaling exportparts="svg:auto-scaling" ${"downscale-only" === n ? "data-downscale-only" : ""}>${e}</marp-auto-scaling>` } this.shadowRoot.innerHTML = t + e } }; let r; const a = Symbol(); let l; const c = "marpitSVGPolyfill:setZoomFactor,", d = Symbol(), g = Symbol(); const h = () => { const t = "Apple Computer, Inc." === navigator.vendor, e = t ? [u] : [], i = { then: e => (t ? (async () => { if (void 0 === l) { const t = document.createElement("canvas"); t.width = 10, t.height = 10; const e = t.getContext("2d"), i = new Image(10, 10), n = new Promise((t => { i.addEventListener("load", (() => t())) })); i.crossOrigin = "anonymous", i.src = "data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2210%22%20height%3D%2210%22%20viewBox%3D%220%200%201%201%22%3E%3CforeignObject%20width%3D%221%22%20height%3D%221%22%20requiredExtensions%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%3E%3Cdiv%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxhtml%22%20style%3D%22width%3A%201px%3B%20height%3A%201px%3B%20background%3A%20red%3B%20position%3A%20relative%22%3E%3C%2Fdiv%3E%3C%2FforeignObject%3E%3C%2Fsvg%3E", await n, e.drawImage(i, 0, 0), l = e.getImageData(5, 5, 1, 1).data[3] < 128 } return l })().then((t => { null == e || e(t ? [u] : []) })) : null == e || e([]), i) }; return Object.assign(e, i) }; let p, m; function u(t) { const e = "object" == typeof t && t.target || document, i = "object" == typeof t ? t.zoom : t; window[g] || (Object.defineProperty(window, g, { configurable: !0, value: !0 }), document.body.style.zoom = 1.0001, document.body.offsetHeight, document.body.style.zoom = 1, window.addEventListener("message", (({ data: t, origin: e }) => { if (e === window.origin) try { if (t && "string" == typeof t && t.startsWith(c)) { const [, e] = t.split(","), i = Number.parseFloat(e); Number.isNaN(i) || (m = i) } } catch (t) { console.error(t) } }))); let n = !1; Array.from(e.querySelectorAll("svg[data-marpit-svg]"), (t => { var e, s, o, r; t.style.transform || (t.style.transform = "translateZ(0)"); const a = i || m || t.currentScale || 1; p !== a && (p = a, n = a); const l = t.getBoundingClientRect(), { length: c } = t.children; for (let i = 0; i < c; i += 1) { const n = t.children[i]; if (n.getScreenCTM) { const t = n.getScreenCTM(); if (t) { const i = null !== (s = null === (e = n.x) || void 0 === e ? void 0 : e.baseVal.value) && void 0 !== s ? s : 0, c = null !== (r = null === (o = n.y) || void 0 === o ? void 0 : o.baseVal.value) && void 0 !== r ? r : 0, d = n.children.length; for (let e = 0; e < d; e += 1) { const s = n.children[e]; if ("SECTION" === s.tagName) { const { style: e } = s; e.transformOrigin || (e.transformOrigin = `${-i}px ${-c}px`), e.transform = `scale(${a}) matrix(${t.a}, ${t.b}, ${t.c}, ${t.d}, ${t.e - l.left}, ${t.f - l.top}) translateZ(0.0001px)`; break } } } } } })), !1 !== n && Array.from(e.querySelectorAll("iframe"), (({ contentWindow: t }) => { null == t || t.postMessage(`${c}${n}`, "null" === window.origin ? "*" : window.origin) })) } function v({ once: t = !1, target: e = document } = {}) { const i = function (t = document) { if (t[d]) return t[d]; let e = !0; const i = () => { e = !1, delete t[d] }; Object.defineProperty(t, d, { configurable: !0, value: i }); let n = [], s = !1; (async () => { try { n = await h() } finally { s = !0 } })(); const o = () => { for (const e of n) e({ target: t }); s && 0 === n.length || e && window.requestAnimationFrame(o) }; return o(), i }(e); return t ? (i(), () => { }) : i } p = 1, m = void 0; const b = Symbol(), w = (e = document) => { if ("undefined" == typeof window) throw new Error("Marp Core's browser script is valid only in browser context."); if (((e = document) => { const i = window[a]; i || customElements.define("marp-auto-scaling", s); for (const n of Object.keys(t)) { const s = `marp-${n}`, a = t[n].proto(); null != r || (r = !!document.createElement("div", { is: "marp-auto-scaling" }).outerHTML.startsWith("<div is")), r && a !== HTMLElement ? i || customElements.define(s, o(a, { style: t[n].style }), { extends: n }) : (i || customElements.define(s, o(HTMLElement, t[n])), e.querySelectorAll(`${n}[is="${s}"]`).forEach((t => { t.outerHTML = t.outerHTML.replace(new RegExp(`^<${n}`, "i"), `<${s}`).replace(new RegExp(`</${n}>$`, "i"), `</${s}>`) }))) } window[a] = !0 })(e), e[b]) return e[b]; const i = v({ target: e }), n = () => { i(), delete e[b] }, l = Object.assign(n, { cleanup: n, update: () => w(e) }); return Object.defineProperty(e, b, { configurable: !0, value: l }), l }, y = document.currentScript; w(y ? y.getRootNode() : document) }();
+                </script>
+            </foreignObject>
+        </svg></div>
+    <script>/*!! License: https://unpkg.com/@marp-team/marp-cli@3.4.0/lib/bespoke.js.LICENSE.txt */
+        !function () { "use strict"; function e(e) { return e && e.__esModule && Object.prototype.hasOwnProperty.call(e, "default") ? e.default : e } var t = { from: function (e, t) { var n, r = 1 === (e.parent || e).nodeType ? e.parent || e : document.querySelector(e.parent || e), o = [].filter.call("string" == typeof e.slides ? r.querySelectorAll(e.slides) : e.slides || r.children, (function (e) { return "SCRIPT" !== e.nodeName })), i = {}, a = function (e, t) { return (t = t || {}).index = o.indexOf(e), t.slide = e, t }, s = function (e, t) { i[e] = (i[e] || []).filter((function (e) { return e !== t })) }, l = function (e, t) { return (i[e] || []).reduce((function (e, n) { return e && !1 !== n(t) }), !0) }, c = function (e, t) { o[e] && (n && l("deactivate", a(n, t)), n = o[e], l("activate", a(n, t))) }, d = function (e, t) { var r = o.indexOf(n) + e; l(e > 0 ? "next" : "prev", a(n, t)) && c(r, t) }, u = { off: s, on: function (e, t) { return (i[e] || (i[e] = [])).push(t), s.bind(null, e, t) }, fire: l, slide: function (e, t) { if (!arguments.length) return o.indexOf(n); l("slide", a(o[e], t)) && c(e, t) }, next: d.bind(null, 1), prev: d.bind(null, -1), parent: r, slides: o, destroy: function (e) { l("destroy", a(n, e)), i = {} } }; return (t || []).forEach((function (e) { e(u) })), n || c(0), u } }, n = e(t); const r = document.body, o = (...e) => history.replaceState(...e), i = "presenter", a = "next", s = ["", i, a], l = "bespoke-marp-", c = `data-${l}`, d = (e, { protocol: t, host: n, pathname: r, hash: o } = location) => { const i = e.toString(); return `${t}//${n}${r}${i ? "?" : ""}${i}${o}` }, u = () => r.dataset.bespokeView, f = e => new URLSearchParams(location.search).get(e), m = (e, t = {}) => { var n; const r = { location, setter: o, ...t }, i = new URLSearchParams(r.location.search); for (const t of Object.keys(e)) { const n = e[t]; "string" == typeof n ? i.set(t, n) : i.delete(t) } try { r.setter({ ...null !== (n = window.history.state) && void 0 !== n ? n : {} }, "", d(i, r.location)) } catch (e) { console.error(e) } }, g = (() => { const e = "bespoke-marp"; try { return localStorage.setItem(e, e), localStorage.removeItem(e), !0 } catch (e) { return !1 } })(), p = e => { try { return localStorage.getItem(e) } catch (e) { return null } }, v = (e, t) => { try { return localStorage.setItem(e, t), !0 } catch (e) { return !1 } }, h = e => { try { return localStorage.removeItem(e), !0 } catch (e) { return !1 } }, y = (e, t) => { const n = "aria-hidden"; t ? e.setAttribute(n, "true") : e.removeAttribute(n) }, b = e => { e.parent.classList.add(`${l}parent`), e.slides.forEach((e => e.classList.add(`${l}slide`))), e.on("activate", (t => { const n = `${l}active`, r = t.slide, o = r.classList, i = !o.contains(n); if (e.slides.forEach((e => { e.classList.remove(n), y(e, !0) })), o.add(n), y(r, !1), i) { const e = `${n}-ready`; o.add(e), document.body.clientHeight, o.remove(e) } })) }, w = e => { let t = 0, n = 0; Object.defineProperty(e, "fragments", { enumerable: !0, value: e.slides.map((e => [null, ...e.querySelectorAll("[data-marpit-fragment]")])) }); const r = r => void 0 !== e.fragments[t][n + r], o = (r, o) => { t = r, n = o, e.fragments.forEach(((e, t) => { e.forEach(((e, n) => { if (null == e) return; const i = t < r || t === r && n <= o; e.setAttribute(`${c}fragment`, (i ? "" : "in") + "active"); const a = `${c}current-fragment`; t === r && n === o ? e.setAttribute(a, "current") : e.removeAttribute(a) })) })), e.fragmentIndex = o; const i = { slide: e.slides[r], index: r, fragments: e.fragments[r], fragmentIndex: o }; e.fire("fragment", i) }; e.on("next", (({ fragment: i = !0 }) => { if (i) { if (r(1)) return o(t, n + 1), !1; const i = t + 1; e.fragments[i] && o(i, 0) } else { const r = e.fragments[t].length; if (n + 1 < r) return o(t, r - 1), !1; const i = e.fragments[t + 1]; i && o(t + 1, i.length - 1) } })), e.on("prev", (({ fragment: i = !0 }) => { if (r(-1) && i) return o(t, n - 1), !1; const a = t - 1; e.fragments[a] && o(a, e.fragments[a].length - 1) })), e.on("slide", (({ index: t, fragment: n }) => { let r = 0; if (void 0 !== n) { const o = e.fragments[t]; if (o) { const { length: e } = o; r = -1 === n ? e - 1 : Math.min(Math.max(n, 0), e - 1) } } o(t, r) })), o(0, 0) }, x = document, k = () => !(!x.fullscreenEnabled && !x.webkitFullscreenEnabled), $ = () => !(!x.fullscreenElement && !x.webkitFullscreenElement), E = e => { e.fullscreen = () => { k() && (async () => { return $() ? null === (e = x.exitFullscreen || x.webkitExitFullscreen) || void 0 === e ? void 0 : e.call(x) : ((e = x.body) => { var t; return null === (t = e.requestFullscreen || e.webkitRequestFullscreen) || void 0 === t ? void 0 : t.call(e) })(); var e })() }, document.addEventListener("keydown", (t => { "f" !== t.key && "F11" !== t.key || t.altKey || t.ctrlKey || t.metaKey || !k() || (e.fullscreen(), t.preventDefault()) })) }, L = `${l}inactive`, S = (e = 2e3) => ({ parent: t, fire: n }) => { const r = t.classList, o = e => n(`marp-${e ? "" : "in"}active`); let i; const a = () => { i && clearTimeout(i), i = setTimeout((() => { r.add(L), o() }), e), r.contains(L) && (r.remove(L), o(!0)) }; for (const e of ["mousedown", "mousemove", "touchend"]) document.addEventListener(e, a); setTimeout(a, 0) }, P = ["AUDIO", "BUTTON", "INPUT", "SELECT", "TEXTAREA", "VIDEO"], _ = e => { e.parent.addEventListener("keydown", (e => { if (!e.target) return; const t = e.target; (P.includes(t.nodeName) || "true" === t.contentEditable) && e.stopPropagation() })) }, T = e => { window.addEventListener("load", (() => { for (const t of e.slides) { const e = t.querySelector("marp-auto-scaling, [data-auto-scaling], [data-marp-fitting]"); t.setAttribute(`${c}load`, e ? "" : "hideable") } })) }, I = ({ interval: e = 250 } = {}) => t => { document.addEventListener("keydown", (e => { if (" " === e.key && e.shiftKey) t.prev(); else if ("ArrowLeft" === e.key || "ArrowUp" === e.key || "PageUp" === e.key) t.prev({ fragment: !e.shiftKey }); else if (" " !== e.key || e.shiftKey) if ("ArrowRight" === e.key || "ArrowDown" === e.key || "PageDown" === e.key) t.next({ fragment: !e.shiftKey }); else if ("End" === e.key) t.slide(t.slides.length - 1, { fragment: -1 }); else { if ("Home" !== e.key) return; t.slide(0) } else t.next(); e.preventDefault() })); let n, r, o = 0; t.parent.addEventListener("wheel", (i => { let a = !1; const s = (e, t) => { e && (a = a || ((e, t) => ((e, t) => { const n = "X" === t ? "Width" : "Height"; return e[`client${n}`] < e[`scroll${n}`] })(e, t) && ((e, t) => { const { overflow: n } = e, r = e[`overflow${t}`]; return "auto" === n || "scroll" === n || "auto" === r || "scroll" === r })(getComputedStyle(e), t))(e, t)), (null == e ? void 0 : e.parentElement) && s(e.parentElement, t) }; if (0 !== i.deltaX && s(i.target, "X"), 0 !== i.deltaY && s(i.target, "Y"), a) return; i.preventDefault(); const l = Math.sqrt(i.deltaX ** 2 + i.deltaY ** 2); if (void 0 !== i.wheelDelta) { if (void 0 === i.webkitForce && Math.abs(i.wheelDelta) < 40) return; if (i.deltaMode === i.DOM_DELTA_PIXEL && l < 4) return } else if (i.deltaMode === i.DOM_DELTA_PIXEL && l < 12) return; r && clearTimeout(r), r = setTimeout((() => { n = 0 }), e); const c = Date.now() - o < e, d = l <= n; if (n = l, c || d) return; let u; (i.deltaX > 0 || i.deltaY > 0) && (u = "next"), (i.deltaX < 0 || i.deltaY < 0) && (u = "prev"), u && (t[u](), o = Date.now()) })) }, M = (e = `.${l}osc`) => { const t = document.querySelector(e); if (!t) return () => { }; const n = (e, n) => { t.querySelectorAll(`[${c}osc=${JSON.stringify(e)}]`).forEach(n) }; return k() || n("fullscreen", (e => e.style.display = "none")), g || n("presenter", (e => { e.disabled = !0, e.title = "Presenter view is disabled due to restricted localStorage." })), e => { t.addEventListener("click", (t => { if (t.target instanceof HTMLElement) { const { bespokeMarpOsc: n } = t.target.dataset; n && t.target.blur(); const r = { fragment: !t.shiftKey }; "next" === n ? e.next(r) : "prev" === n ? e.prev(r) : "fullscreen" === n ? null == e || e.fullscreen() : "presenter" === n && e.openPresenterView() } })), e.parent.appendChild(t), e.on("activate", (({ index: t }) => { n("page", (n => n.textContent = `Page ${t + 1} of ${e.slides.length}`)) })), e.on("fragment", (({ index: t, fragments: r, fragmentIndex: o }) => { n("prev", (e => e.disabled = 0 === t && 0 === o)), n("next", (n => n.disabled = t === e.slides.length - 1 && o === r.length - 1)) })), e.on("marp-active", (() => y(t, !1))), e.on("marp-inactive", (() => y(t, !0))), k() && (e => { for (const t of ["", "webkit"]) x.addEventListener(t + "fullscreenchange", e) })((() => n("fullscreen", (e => e.classList.toggle("exit", k() && $()))))) } }, O = e => { window.addEventListener("message", (t => { if (t.origin !== window.origin) return; const [n, r] = t.data.split(":"); if ("navigate" === n) { const [t, n] = r.split(","); let o = Number.parseInt(t, 10), i = Number.parseInt(n, 10) + 1; i >= e.fragments[o].length && (o += 1, i = 0), e.slide(o, { fragment: i }) } })) }; var A = ["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]; let C = e => String(e).replace(/[&<>"']/g, (e => `&${D[e]};`)), D = { "&": "amp", "<": "lt", ">": "gt", '"': "quot", "'": "apos" }, N = "dangerouslySetInnerHTML", B = { className: "class", htmlFor: "for" }, q = {}; function K(e, t) { let n = [], r = ""; t = t || {}; for (let e = arguments.length; e-- > 2;)n.push(arguments[e]); if ("function" == typeof e) return t.children = n.reverse(), e(t); if (e) { if (r += "<" + e, t) for (let e in t) !1 !== t[e] && null != t[e] && e !== N && (r += ` ${B[e] ? B[e] : C(e)}="${C(t[e])}"`); r += ">" } if (-1 === A.indexOf(e)) { if (t[N]) r += t[N].__html; else for (; n.length;) { let e = n.pop(); if (e) if (e.pop) for (let t = e.length; t--;)n.push(e[t]); else r += !0 === q[e] ? e : C(e) } r += e ? `</${e}>` : "" } return q[r] = !0, r } const j = ({ children: e }) => K(null, null, ...e), F = `${l}presenter-`, V = { container: `${F}container`, dragbar: `${F}dragbar-container`, next: `${F}next`, nextContainer: `${F}next-container`, noteContainer: `${F}note-container`, noteWrapper: `${F}note-wrapper`, noteButtons: `${F}note-buttons`, infoContainer: `${F}info-container`, infoPage: `${F}info-page`, infoPageText: `${F}info-page-text`, infoPagePrev: `${F}info-page-prev`, infoPageNext: `${F}info-page-next`, noteButtonsBigger: `${F}note-bigger`, noteButtonsSmaller: `${F}note-smaller`, infoTime: `${F}info-time`, infoTimer: `${F}info-timer` }, U = e => { const { title: t } = document; document.title = "[Presenter view]" + (t ? ` - ${t}` : ""); const n = {}, r = e => (n[e] = n[e] || document.querySelector(`.${e}`), n[e]); document.body.appendChild((e => { const t = document.createElement("div"); return t.className = V.container, t.appendChild(e), t.insertAdjacentHTML("beforeend", K(j, null, K("div", { class: V.nextContainer }, K("iframe", { class: V.next, src: "?view=next" })), K("div", { class: V.dragbar }), K("div", { class: V.noteContainer }, K("div", { class: V.noteWrapper }), K("div", { class: V.noteButtons }, K("button", { class: V.noteButtonsSmaller, tabindex: "-1", title: "Smaller notes font size" }, "Smaller notes font size"), K("button", { class: V.noteButtonsBigger, tabindex: "-1", title: "Bigger notes font size" }, "Bigger notes font size"))), K("div", { class: V.infoContainer }, K("div", { class: V.infoPage }, K("button", { class: V.infoPagePrev, tabindex: "-1", title: "Previous" }, "Previous"), K("span", { class: V.infoPageText }), K("button", { class: V.infoPageNext, tabindex: "-1", title: "Next" }, "Next")), K("time", { class: V.infoTime, title: "Current time" }), K("time", { class: V.infoTimer, title: "Timer" })))), t })(e.parent)), (e => { let t = !1; r(V.dragbar).addEventListener("mousedown", (() => { t = !0, r(V.dragbar).classList.add("active") })), window.addEventListener("mouseup", (() => { t = !1, r(V.dragbar).classList.remove("active") })), window.addEventListener("mousemove", (e => { if (!t) return; const n = e.clientX / document.documentElement.clientWidth * 100; r(V.container).style.setProperty("--bespoke-marp-presenter-split-ratio", `${Math.max(0, Math.min(100, n))}%`) })), r(V.nextContainer).addEventListener("click", (() => e.next())); const n = r(V.next), o = (i = n, (e, t) => { var n; return null === (n = i.contentWindow) || void 0 === n ? void 0 : n.postMessage(`navigate:${e},${t}`, "null" === window.origin ? "*" : window.origin) }); var i; n.addEventListener("load", (() => { r(V.nextContainer).classList.add("active"), o(e.slide(), e.fragmentIndex), e.on("fragment", (({ index: e, fragmentIndex: t }) => o(e, t))) })); const a = document.querySelectorAll(".bespoke-marp-note"); a.forEach((e => { e.addEventListener("keydown", (e => e.stopPropagation())), r(V.noteWrapper).appendChild(e) })), e.on("activate", (() => a.forEach((t => t.classList.toggle("active", t.dataset.index == e.slide()))))); let s = 0; const l = e => { s = Math.max(-5, s + e), r(V.noteContainer).style.setProperty("--bespoke-marp-note-font-scale", (1.2 ** s).toFixed(4)) }, c = () => l(1), d = () => l(-1), u = r(V.noteButtonsBigger), f = r(V.noteButtonsSmaller); u.addEventListener("click", (() => { u.blur(), c() })), f.addEventListener("click", (() => { f.blur(), d() })), document.addEventListener("keydown", (e => { "+" === e.key && c(), "-" === e.key && d() }), !0), e.on("activate", (({ index: t }) => { r(V.infoPageText).textContent = `${t + 1} / ${e.slides.length}` })); const m = r(V.infoPagePrev), g = r(V.infoPageNext); m.addEventListener("click", (t => { m.blur(), e.prev({ fragment: !t.shiftKey }) })), g.addEventListener("click", (t => { g.blur(), e.next({ fragment: !t.shiftKey }) })), e.on("fragment", (({ index: t, fragments: n, fragmentIndex: r }) => { m.disabled = 0 === t && 0 === r, g.disabled = t === e.slides.length - 1 && r === n.length - 1 })); let p = new Date; const v = () => { const e = new Date, t = e => `${Math.floor(e)}`.padStart(2, "0"), n = e.getTime() - p.getTime(), o = t(n / 1e3 % 60), i = t(n / 1e3 / 60 % 60), a = t(n / 36e5 % 24); r(V.infoTime).textContent = e.toLocaleTimeString(), r(V.infoTimer).textContent = `${a}:${i}:${o}` }; v(), setInterval(v, 250), r(V.infoTimer).addEventListener("click", (() => { p = new Date })) })(e) }, X = e => { if (!(e => e.syncKey && "string" == typeof e.syncKey)(e)) throw new Error("The current instance of Bespoke.js is invalid for Marp bespoke presenter plugin."); Object.defineProperties(e, { openPresenterView: { enumerable: !0, value: H }, presenterUrl: { enumerable: !0, get: R } }), g && document.addEventListener("keydown", (t => { "p" !== t.key || t.altKey || t.ctrlKey || t.metaKey || (t.preventDefault(), e.openPresenterView()) })) }; function H() { const { max: e, floor: t } = Math, n = e(t(.85 * window.innerWidth), 640), r = e(t(.85 * window.innerHeight), 360); return window.open(this.presenterUrl, F + this.syncKey, `width=${n},height=${r},menubar=no,toolbar=no`) } function R() { const e = new URLSearchParams(location.search); return e.set("view", "presenter"), e.set("sync", this.syncKey), d(e) } const W = e => { const t = u(); return t === a && e.appendChild(document.createElement("span")), { "": X, [i]: U, [a]: O }[t] }, J = e => { e.on("activate", (t => { document.querySelectorAll(".bespoke-progress-parent > .bespoke-progress-bar").forEach((n => { n.style.flexBasis = 100 * t.index / (e.slides.length - 1) + "%" })) })) }, Y = e => { const t = Number.parseInt(e, 10); return Number.isNaN(t) ? null : t }, z = (e = {}) => { const t = { history: !0, ...e }; return e => { let n = !0; const r = e => { const t = n; try { return n = !0, e() } finally { n = t } }, o = (t = { fragment: !0 }) => { let n = t.fragment ? Y(f("f") || "") : null; ((t, n) => { const { min: r, max: o } = Math, { fragments: i, slides: a } = e, s = o(0, r(t, a.length - 1)), l = o(0, r(n || 0, i[s].length - 1)); s === e.slide() && l === e.fragmentIndex || e.slide(s, { fragment: l }) })((() => { var t, r; if (location.hash) { const [o] = location.hash.slice(1).split(":~:"); if (/^\d+$/.test(o)) return (null !== (t = Y(o)) && void 0 !== t ? t : 1) - 1; const i = document.getElementById(o) || document.querySelector(`a[name="${CSS.escape(o)}"]`); if (i) { const { length: t } = e.slides; for (let o = 0; o < t; o += 1)if (e.slides[o].contains(i)) { const t = null === (r = e.fragments) || void 0 === r ? void 0 : r[o], a = i.closest("[data-marpit-fragment]"); if (t && a) { const e = t.indexOf(a); e >= 0 && (n = e) } return o } } } return 0 })(), n) }; e.on("fragment", (({ index: e, fragmentIndex: r }) => { n || m({ f: 0 === r || r.toString() }, { location: { ...location, hash: `#${e + 1}` }, setter: (...e) => t.history ? history.pushState(...e) : history.replaceState(...e) }) })), setTimeout((() => { o(), window.addEventListener("hashchange", (() => r((() => { o({ fragment: !1 }), m({ f: void 0 }) })))), window.addEventListener("popstate", (() => { n || r((() => o())) })), n = !1 }), 0) } }, G = (e = {}) => { var t; const n = e.key || (null === (t = window.history.state) || void 0 === t ? void 0 : t.marpBespokeSyncKey) || Math.random().toString(36).slice(2), r = `bespoke-marp-sync-${n}`; var i; i = { marpBespokeSyncKey: n }, m({}, { setter: (e, ...t) => o({ ...e, ...i }, ...t) }); const a = () => { const e = p(r); return e ? JSON.parse(e) : Object.create(null) }, s = e => { const t = a(), n = { ...t, ...e(t) }; return v(r, JSON.stringify(n)), n }, l = () => { window.removeEventListener("pageshow", l), s((e => ({ reference: (e.reference || 0) + 1 }))) }; return e => { l(), Object.defineProperty(e, "syncKey", { value: n, enumerable: !0 }); let t = !0; setTimeout((() => { e.on("fragment", (e => { t && s((() => ({ index: e.index, fragmentIndex: e.fragmentIndex }))) })) }), 0), window.addEventListener("storage", (n => { if (n.key === r && n.oldValue && n.newValue) { const r = JSON.parse(n.oldValue), o = JSON.parse(n.newValue); if (r.index !== o.index || r.fragmentIndex !== o.fragmentIndex) try { t = !1, e.slide(o.index, { fragment: o.fragmentIndex, forSync: !0 }) } finally { t = !0 } } })); const o = () => { const { reference: e } = a(); void 0 === e || e <= 1 ? h(r) : s((() => ({ reference: e - 1 }))) }; window.addEventListener("pagehide", (e => { e.persisted && window.addEventListener("pageshow", l), o() })), e.on("destroy", o) } }, { PI: Q, abs: Z, sqrt: ee, atan2: te } = Math, ne = { passive: !0 }, re = ({ slope: e = -.7, swipeThreshold: t = 30 } = {}) => n => { let r; const o = n.parent, i = e => { const t = o.getBoundingClientRect(); return { x: e.pageX - (t.left + t.right) / 2, y: e.pageY - (t.top + t.bottom) / 2 } }; o.addEventListener("touchstart", (({ touches: e }) => { r = 1 === e.length ? i(e[0]) : void 0 }), ne), o.addEventListener("touchmove", (e => { if (r) if (1 === e.touches.length) { e.preventDefault(); const t = i(e.touches[0]), n = t.x - r.x, o = t.y - r.y; r.delta = ee(Z(n) ** 2 + Z(o) ** 2), r.radian = te(n, o) } else r = void 0 })), o.addEventListener("touchend", (o => { if (r) { if (r.delta && r.delta >= t && r.radian) { const t = (r.radian - e + Q) % (2 * Q) - Q; n[t < 0 ? "next" : "prev"](), o.stopPropagation() } r = void 0 } }), ne) }, oe = new Map; oe.clear(), oe.set("none", { backward: { both: void 0, incoming: void 0, outgoing: void 0 }, forward: { both: void 0, incoming: void 0, outgoing: void 0 } }); const ie = { both: "", outgoing: "outgoing-", incoming: "incoming-" }, ae = { forward: "", backward: "-backward" }, se = e => `--marp-bespoke-transition-animation-${e}`, le = e => `--marp-transition-${e}`, ce = se("name"), de = se("duration"), ue = e => new Promise((t => { const n = {}, r = document.createElement("div"), o = e => { r.remove(), t(e) }; r.addEventListener("animationstart", (() => o(n))), Object.assign(r.style, { animationName: e, animationDuration: "1s", animationFillMode: "both", animationPlayState: "paused", position: "absolute", pointerEvents: "none" }), document.body.appendChild(r); const i = getComputedStyle(r).getPropertyValue(le("duration")); i && (n.defaultDuration = i), ((e, t) => { requestAnimationFrame((() => { e.style.animationPlayState = "running", requestAnimationFrame((() => t(void 0))) })) })(r, o) })), fe = async e => oe.has(e) ? oe.get(e) : (e => { const t = {}, n = []; for (const [r, o] of Object.entries(ie)) for (const [i, a] of Object.entries(ae)) { const s = `marp-${o}transition${a}-${e}`; n.push(ue(s).then((e => { t[i] = t[i] || {}, t[i][r] = e ? { ...e, name: s } : void 0 }))) } return Promise.all(n).then((() => t)) })(e).then((t => (oe.set(e, t), t))), me = e => Object.values(e).flatMap(Object.values).every((e => !e)), ge = (e, { type: t, backward: n }) => { const r = e[n ? "backward" : "forward"], o = (() => { const e = r[t], n = e => ({ [ce]: e.name }); if (e) return n(e); if (r.both) { const e = n(r.both); return "incoming" === t && (e[se("direction")] = "reverse"), e } })(); return !o && n ? ge(e, { type: t, backward: !1 }) : o || { [ce]: "__bespoke_marp_transition_no_animation__" } }, pe = e => { if (e) try { const t = JSON.parse(e); if ((e => { if ("object" != typeof e) return !1; const t = e; return "string" == typeof t.name && (void 0 === t.duration || "string" == typeof t.duration) })(t)) return t } catch (e) { } }, ve = "_tSId", he = "_tA", ye = "bespoke-marp-transition-warming-up", be = window.matchMedia("(prefers-reduced-motion: reduce)"), we = "__bespoke_marp_transition_reduced_outgoing__", xe = "__bespoke_marp_transition_reduced_incoming__", ke = { forward: { both: void 0, incoming: { name: xe }, outgoing: { name: we } }, backward: { both: void 0, incoming: { name: xe }, outgoing: { name: we } } }, $e = e => { if (!document.startViewTransition) return; const t = t => (void 0 !== t && (e._tD = t), e._tD); let n; t(!1), ((...e) => { const t = [...new Set(e).values()]; return Promise.all(t.map((e => fe(e)))).then() })(...Array.from(document.querySelectorAll("section[data-transition], section[data-transition-back]")).flatMap((e => [e.dataset.transition, e.dataset.transitionBack].flatMap((e => { const t = pe(e); return [null == t ? void 0 : t.name, (null == t ? void 0 : t.builtinFallback) ? `__builtin__${t.name}` : void 0] })).filter((e => !!e))))).then((() => { document.querySelectorAll("style").forEach((e => { e.innerHTML = e.innerHTML.replace(/--marp-transition-duration:[^;}]*[;}]/g, (e => e.slice(0, -1) + "!important" + e.slice(-1))) })) })); const r = (n, { back: r, cond: o }) => i => { var a; const s = t(); if (s) return !!i[he] || !("object" != typeof s || (s.skipTransition(), !i.forSync)); if (!o(i)) return !0; const l = e.slides[e.slide()], c = () => { var e; return null !== (e = i.back) && void 0 !== e ? e : r }, d = "data-transition" + (c() ? "-back" : ""), u = l.querySelector(`section[${d}]`); if (!u) return !0; const f = pe(null !== (a = u.getAttribute(d)) && void 0 !== a ? a : void 0); return !f || ((async (e, { builtinFallback: t = !0 } = {}) => { let n = await fe(e); if (me(n)) { if (!t) return; return n = await fe(`__builtin__${e}`), me(n) ? void 0 : n } return n })(f.name, { builtinFallback: f.builtinFallback }).then((e => { if (!e) { t(!0); try { n(i) } finally { t(!1) } return } let r = e; be.matches && (console.warn("Use a constant animation to transition because preferring reduced motion by viewer has detected."), r = ke); const o = document.getElementById(ve); o && o.remove(); const a = document.createElement("style"); a.id = ve, document.head.appendChild(a), ((e, t) => { const n = [`:root{${le("direction")}:${t.backward ? -1 : 1};}`, ":root:has(.bespoke-marp-inactive){cursor:none;}"], r = t => { var n, o, i; const a = (null === (n = e[t].both) || void 0 === n ? void 0 : n.defaultDuration) || (null === (o = e[t].outgoing) || void 0 === o ? void 0 : o.defaultDuration) || (null === (i = e[t].incoming) || void 0 === i ? void 0 : i.defaultDuration); return "forward" === t ? a : a || r("forward") }, o = t.duration || r(t.backward ? "backward" : "forward"); void 0 !== o && n.push(`::view-transition-group(*){${de}:${o};}`); const i = e => Object.entries(e).map((([e, t]) => `${e}:${t};`)).join(""); return n.push(`::view-transition-old(root){${i(ge(e, { ...t, type: "outgoing" }))}}`, `::view-transition-new(root){${i(ge(e, { ...t, type: "incoming" }))}}`), n })(r, { backward: c(), duration: f.duration }).forEach((e => { var t; return null === (t = a.sheet) || void 0 === t ? void 0 : t.insertRule(e) })); const s = document.documentElement.classList; s.add(ye); let l = !1; const d = () => { l || (n(i), l = !0, s.remove(ye)) }, u = () => { t(!1), a.remove(), s.remove(ye) }; try { t(!0); const e = document.startViewTransition(d); t(e), e.finished.finally(u) } catch (e) { console.error(e), d(), u() } })), !1) }; e.on("prev", r((t => e.prev({ ...t, [he]: !0 })), { back: !0, cond: e => { var t; return e.index > 0 && !((null === (t = e.fragment) || void 0 === t || t) && n.fragmentIndex > 0) } })), e.on("next", r((t => e.next({ ...t, [he]: !0 })), { cond: t => t.index + 1 < e.slides.length && !(n.fragmentIndex + 1 < n.fragments.length) })), setTimeout((() => { e.on("slide", r((t => e.slide(t.index, { ...t, [he]: !0 })), { cond: t => { const n = e.slide(); return t.index !== n && (t.back = t.index < n, !0) } })) }), 0), e.on("fragment", (e => { n = e })) }; let Ee; const Le = () => (void 0 === Ee && (Ee = "wakeLock" in navigator && navigator.wakeLock), Ee), Se = async () => { const e = Le(); if (e) try { return await e.request("screen") } catch (e) { console.warn(e) } return null }, Pe = async () => { if (!Le()) return; let e; const t = () => { e && "visible" === document.visibilityState && Se() }; for (const e of ["visibilitychange", "fullscreenchange"]) document.addEventListener(e, t); return e = await Se(), e }; ((e = document.getElementById(":$p")) => { (() => { const e = f("view"); r.dataset.bespokeView = e === a || e === i ? e : "" })(); const t = (e => { const t = f(e); return m({ [e]: void 0 }), t })("sync") || void 0; n.from(e, ((...e) => { const t = s.findIndex((e => u() === e)); return e.map((([e, n]) => e[t] && n)).filter((e => e)) })([[1, 1, 0], G({ key: t })], [[1, 1, 1], W(e)], [[1, 1, 0], _], [[1, 1, 1], b], [[1, 0, 0], S()], [[1, 1, 1], T], [[1, 1, 1], z({ history: !1 })], [[1, 1, 0], I()], [[1, 1, 0], E], [[1, 0, 0], J], [[1, 1, 0], re()], [[1, 0, 0], M()], [[1, 0, 0], $e], [[1, 1, 1], w], [[1, 1, 0], Pe])) })() }();</script>
+</body>
+
+</html>
